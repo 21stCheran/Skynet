@@ -1,0 +1,3 @@
+Lithium Polymer (LiPo) batteries are favored for their high energy density and high discharge capabilities. To increase voltage we'll build in series.
+
+$$P=V×I$$A higher voltage (V) allows the system to deliver the same amount of power (P) with a lower current (I).  Reduction in current minimizes resistive heat losses in wiring and components, improves overall efficiency, and allows for the use of lighter-gauge wires.

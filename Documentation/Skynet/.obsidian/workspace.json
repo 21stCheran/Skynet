@@ -1,0 +1,206 @@
+{
+  "main": {
+    "id": "dcc19be890850e06",
+    "type": "split",
+    "children": [
+      {
+        "id": "aa5e1f8c8ba67634",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "4678797bf7d4fd95",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Avionics/Airframe Design.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "Airframe Design"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "be75bf6713e67117",
+    "type": "split",
+    "children": [
+      {
+        "id": "88c23b1ea816666d",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "db8ad4b278a380e2",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Files"
+            }
+          },
+          {
+            "id": "86de68441a836eea",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Search"
+            }
+          },
+          {
+            "id": "555f370ccb117bc2",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Bookmarks"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "099d239f88ba6f28",
+    "type": "split",
+    "children": [
+      {
+        "id": "1d6be9d5bfb0ba12",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "3235392333206225",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Backlinks"
+            }
+          },
+          {
+            "id": "fac170e783dfe6ca",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "Physics/Propulsion.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Outgoing links from Propulsion"
+            }
+          },
+          {
+            "id": "72275b4d8f7ee263",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Tags"
+            }
+          },
+          {
+            "id": "6b2a3d13d1a53429",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Outline"
+            }
+          }
+        ],
+        "currentTab": 1
+      }
+    ],
+    "direction": "horizontal",
+    "width": 200,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Open quick switcher": false,
+      "graph:Open graph view": false,
+      "canvas:Create new canvas": false,
+      "daily-notes:Open today's daily note": false,
+      "templates:Insert template": false,
+      "command-palette:Open command palette": false,
+      "bases:Create new base": false
+    }
+  },
+  "active": "4678797bf7d4fd95",
+  "lastOpenFiles": [
+    "Avionics/Architecture.md",
+    "Avionics/Airframe Design.md",
+    "Components/Material Specsheet/F450 Q450 Quadcopter Frame.md",
+    "Skynet.md",
+    "Physics/Propulsion.md",
+    "Physics/Propeller.md",
+    "File Resources/Graph between thrust, current and RPM.png",
+    "File Resources/Flight Controller.jpg",
+    "File Resources/Control Architecture Diagram.png",
+    "Components/Battery.md",
+    "Components/Motor.md",
+    "Components/Material Specsheet/NEO-6M GPS Module with EPROM.md",
+    "Components/Material Specsheet/2.4GHz NRF24L01+PA+LNA SMA Wireless Transceiver Antenna.md",
+    "Components/Material Specsheet/SimonK 30A ESC.md",
+    "Components/Material Specsheet/A2212 1000 KV BLDC Brushless DC Motor.md",
+    "Components/Material Specsheet/F4 V3S Plus Flight Controller.md",
+    "Components/Material Specsheet/Pro-Range Propellers 1045(10X4.5) Glass Fiber Nylon White 1CW+1CCW-1pair.md",
+    "Pin-diagram.jpg",
+    "Avionics/Architecture",
+    "Avionics",
+    "Components",
+    "File Resources",
+    "Physics/Propulsion(6).md",
+    "Physics/Propulsion(3).md",
+    "Physics/Propulsion(5).md",
+    "Physics/Propulsion(4).md",
+    "Physics/Propulsion(2).md",
+    "Physics/Propulsion(1).md",
+    "Untitled.md",
+    "Components/Material Specsheet",
+    "Skynet(1).md",
+    "Physics"
+  ]
+}

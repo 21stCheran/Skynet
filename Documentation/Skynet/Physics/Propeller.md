@@ -1,0 +1,1 @@
+Propellers generate thrust by moving air. Their performance is defined by diameter and pitch. Larger diameter propellers are more efficient at generating static thrust, making them ideal for lifting heavy loads. Higher pitch allows for higher top speeds but often at the cost of reduced efficiency and increased current draw.
