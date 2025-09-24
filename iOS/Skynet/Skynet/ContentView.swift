@@ -15,9 +15,10 @@ struct ContentView: View {
     @State private var showAlert = false
     @State private var alertMessage = ""
     @State private var receivedMessages: [String] = []
-    @State private var isListening = false
+    @State private var isConnected = false
+    @State private var connectionStatus = "Disconnected"
     
-    private var udpListener = UDPListener()
+    private var udpManager = UDPManager()
     private let userDefaults = UserDefaults.standard
     
     var body: some View {
@@ -26,6 +27,17 @@ struct ContentView: View {
                 .font(.largeTitle)
                 .fontWeight(.bold)
                 .padding(.top)
+            
+            // Connection Status
+            HStack {
+                Circle()
+                    .fill(isConnected ? Color.green : Color.red)
+                    .frame(width: 12, height: 12)
+                Text(connectionStatus)
+                    .font(.subheadline)
+                    .foregroundColor(isConnected ? .green : .red)
+            }
+            .padding(.bottom, 10)
             
             // Connection Settings
             VStack(alignment: .leading, spacing: 10) {
@@ -36,9 +48,21 @@ struct ContentView: View {
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .keyboardType(.decimalPad)
                 
-                TextField("Port (default: 14550)", text: $port)
+                TextField("Port (default: 4210)", text: $port)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .keyboardType(.numberPad)
+            }
+            
+            // Connection Control
+            HStack {
+                Button(action: connectToUDP) {
+                    Text(isConnected ? "Disconnect" : "Connect")
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(isConnected ? Color.red : Color.blue)
+                        .foregroundColor(.white)
+                        .cornerRadius(10.0)
+                }
             }
             
             // Message Input
@@ -48,26 +72,17 @@ struct ContentView: View {
                 
                 TextField("Message to send", text: $message)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .disabled(!isConnected)
                 
-                HStack {
-                    Button(action: sendData) {
-                        Text("Send UDP Data")
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.blue)
-                            .foregroundColor(.white)
-                            .cornerRadius(10.0)
-                    }
-                    
-                    Button(action: toggleListener) {
-                        Text(isListening ? "Stop Listening" : "Start Listening")
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(isListening ? Color.red : Color.green)
-                            .foregroundColor(.white)
-                            .cornerRadius(10.0)
-                    }
+                Button(action: sendMessage) {
+                    Text("Send UDP Data")
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(isConnected ? Color.green : Color.gray)
+                        .foregroundColor(.white)
+                        .cornerRadius(10.0)
                 }
+                .disabled(!isConnected)
             }
             
             // Message Log
@@ -106,13 +121,20 @@ struct ContentView: View {
     
     func loadStoredSettings() {
         ip = userDefaults.string(forKey: "lastUsedIP") ?? "192.168.4.1"
-        port = userDefaults.string(forKey: "lastUsedPort") ?? "14550"
+        port = userDefaults.string(forKey: "lastUsedPort") ?? "4210"
         
-        // Set up UDP listener callback
-        udpListener.onMessageReceived = { message in
+        // Set up UDP manager callbacks
+        udpManager.onMessageReceived = { message in
             DispatchQueue.main.async {
                 let timestamp = DateFormatter.localizedString(from: Date(), dateStyle: .none, timeStyle: .medium)
                 self.receivedMessages.append("[\(timestamp)] \(message)")
+            }
+        }
+        
+        udpManager.onConnectionStatusChanged = { status, isConnected in
+            DispatchQueue.main.async {
+                self.connectionStatus = status
+                self.isConnected = isConnected
             }
         }
     }
@@ -122,7 +144,12 @@ struct ContentView: View {
         userDefaults.set(port, forKey: "lastUsedPort")
     }
     
-    func sendData() {
+    func connectToUDP() {
+        if isConnected {
+            udpManager.disconnect()
+            return
+        }
+        
         guard !ip.isEmpty, !port.isEmpty else {
             alertMessage = "Please enter both IP address and port"
             showAlert = true
@@ -138,158 +165,172 @@ struct ContentView: View {
         // Save settings for next time
         saveSettings()
         
-        // Send UDP message
-        UDPSender.sendMessage(message: message, to: ip, port: portNumber) { success, error in
-            DispatchQueue.main.async {
-                if success {
-                    self.alertMessage = "Message sent successfully!"
-                    self.message = "" // Clear message after sending
-                } else {
-                    self.alertMessage = "Failed to send message: \(error ?? "Unknown error")"
+        udpManager.connectToUDP(host: ip, port: portNumber)
+        
+        print("-- connecting to UDP --")
+        print("IP Address: \(ip)")
+        print("Port: \(port)")
+    }
+    
+    func sendMessage() {
+        guard isConnected else {
+            alertMessage = "Not connected to UDP"
+            showAlert = true
+            return
+        }
+        
+        guard !message.isEmpty else {
+            alertMessage = "Please enter a message to send"
+            showAlert = true
+            return
+        }
+        
+        udpManager.sendMessage(message)
+        message = "" // Clear message after sending
+        
+        print("-- sending UDP message --")
+        print("Message: \(message)")
+    }
+}
+
+// MARK: - UDP Manager
+class UDPManager {
+    private var connection: NWConnection?
+    private var hostUDP: NWEndpoint.Host?
+    private var portUDP: NWEndpoint.Port?
+    
+    var onMessageReceived: ((String) -> Void)?
+    var onConnectionStatusChanged: ((String, Bool) -> Void)?
+    
+    func connectToUDP(host: String, port: UInt16) {
+        // Disconnect any existing connection
+        disconnect()
+        
+        guard let portEndpoint = NWEndpoint.Port(rawValue: port) else {
+            onConnectionStatusChanged?("Invalid port number", false)
+            return
+        }
+        
+        hostUDP = NWEndpoint.Host(host)
+        portUDP = portEndpoint
+        
+        connection = NWConnection(host: hostUDP!, port: portUDP!, using: .udp)
+        
+        connection?.stateUpdateHandler = { [weak self] newState in
+            guard let self = self else { return }
+            
+            print("UDP Connection State: \(newState)")
+            
+            switch newState {
+            case .ready:
+                print("State: Ready")
+                DispatchQueue.main.async {
+                    self.onConnectionStatusChanged?("Connected", true)
                 }
-                self.showAlert = true
+                self.receiveUDP()
+                
+            case .setup:
+                print("State: Setup")
+                DispatchQueue.main.async {
+                    self.onConnectionStatusChanged?("Setting up...", false)
+                }
+                
+            case .cancelled:
+                print("State: Cancelled")
+                DispatchQueue.main.async {
+                    self.onConnectionStatusChanged?("Disconnected", false)
+                }
+                
+            case .preparing:
+                print("State: Preparing")
+                DispatchQueue.main.async {
+                    self.onConnectionStatusChanged?("Preparing...", false)
+                }
+                
+            case .failed(let error):
+                print("State: Failed - \(error)")
+                DispatchQueue.main.async {
+                    self.onConnectionStatusChanged?("Failed: \(error.localizedDescription)", false)
+                }
+                
+            case .waiting(let error):
+                print("State: Waiting - \(error)")
+                DispatchQueue.main.async {
+                    self.onConnectionStatusChanged?("Waiting: \(error.localizedDescription)", false)
+                }
+                
+            @unknown default:
+                print("ERROR! State not defined!")
+                DispatchQueue.main.async {
+                    self.onConnectionStatusChanged?("Unknown state", false)
+                }
             }
         }
         
-        print("-- sending UDP data --")
-        print("IP Address: \(ip)")
-        print("Port: \(port)")
-        print("Message: \(message)")
+        connection?.start(queue: .global())
     }
     
-    func toggleListener() {
-        if isListening {
-            udpListener.stopListening()
-            isListening = false
-        } else {
-            guard let portNumber = UInt16(port) else {
-                alertMessage = "Invalid port number for listening"
-                showAlert = true
+    func sendMessage(_ content: String) {
+        guard let connection = connection else {
+            print("No active connection")
+            return
+        }
+        
+        let contentToSendUDP = content.data(using: String.Encoding.utf8)
+        connection.send(content: contentToSendUDP, completion: NWConnection.SendCompletion.contentProcessed({ error in
+            if let error = error {
+                print("ERROR! Error when sending data. Error: \(error)")
+            } else {
+                print("Data was sent to UDP")
+            }
+        }))
+    }
+    
+    func sendMessage(_ content: Data) {
+        guard let connection = connection else {
+            print("No active connection")
+            return
+        }
+        
+        connection.send(content: content, completion: NWConnection.SendCompletion.contentProcessed({ error in
+            if let error = error {
+                print("ERROR! Error when sending data. Error: \(error)")
+            } else {
+                print("Data was sent to UDP")
+            }
+        }))
+    }
+    
+    func receiveUDP() {
+        connection?.receiveMessage { [weak self] data, context, isComplete, error in
+            guard let self = self else { return }
+            
+            if let error = error {
+                print("Receive error: \(error)")
                 return
             }
             
-            udpListener.startListening(on: portNumber) { success, error in
-                DispatchQueue.main.async {
-                    if success {
-                        self.isListening = true
-                        self.alertMessage = "Started listening on port \(portNumber)"
-                    } else {
-                        self.alertMessage = "Failed to start listening: \(error ?? "Unknown error")"
+            if isComplete {
+                print("Receive is complete")
+                if let data = data, !data.isEmpty {
+                    let backToString = String(decoding: data, as: UTF8.self)
+                    print("Received message: \(backToString)")
+                    DispatchQueue.main.async {
+                        self.onMessageReceived?(backToString)
                     }
-                    self.showAlert = true
+                } else {
+                    print("Data == nil")
                 }
-            }
-        }
-    }
-}
-
-// MARK: - UDP Sender
-class UDPSender {
-    static func sendMessage(message: String, to host: String, port: UInt16, completion: @escaping (Bool, String?) -> Void) {
-        
-        // 1. Use the correct initializer for the port.
-        guard let portEndpoint = NWEndpoint.Port(rawValue: port) else {
-            completion(false, "Invalid port number")
-            return
-        }
-        let hostEndpoint = NWEndpoint.Host(host)
-        
-        let connection = NWConnection(host: hostEndpoint, port: portEndpoint, using: .udp)
-        
-        // 2. Use a 'weak' capture list to break the retain cycle.
-        // This is the critical fix for the lifecycle bug.
-        connection.stateUpdateHandler = { [weak connection] state in
-            // Use 'guard let' to safely access the weak reference.
-            guard let connection = connection else { return }
-            
-            switch state {
-            case .ready:
-                print("Connection is ready, sending UDP packet...")
-                let data = message.data(using: .utf8) ?? Data()
                 
-                connection.send(content: data, completion: .contentProcessed { error in
-                    if let error = error {
-                        print("Send error: \(error)")
-                        completion(false, "Send failed: \(error.localizedDescription)")
-                    } else {
-                        print("Data sent successfully.")
-                        completion(true, "Data sent successfully.")
-                    }
-                    // Cancel the connection once the send is complete.
-                    connection.cancel()
-                })
-                
-            case .failed(let error):
-                print("Connection failed: \(error)")
-                completion(false, "Connection failed: \(error.localizedDescription)")
-                connection.cancel()
-                
-            default:
-                break
+                // Continue receiving
+                self.receiveUDP()
             }
         }
-        
-        // Start the connection on a background queue.
-        connection.start(queue: .global())
-    }
-}
-
-// MARK: - UDP Listener
-class UDPListener {
-    private var listener: NWListener?
-    var onMessageReceived: ((String) -> Void)?
-    
-    func startListening(on port: UInt16, completion: @escaping (Bool, String?) -> Void) {
-        guard let portEndpoint = NWEndpoint.Port(rawValue: port) else {
-            completion(false, "Invalid port number")
-            return
-        }
-        
-        do {
-            listener = try NWListener(using: .udp, on: portEndpoint)
-        } catch {
-            completion(false, error.localizedDescription)
-            return
-        }
-        
-        listener?.newConnectionHandler = { connection in
-            connection.stateUpdateHandler = { state in
-                if state == .ready {
-                    self.receiveMessages(on: connection)
-                }
-            }
-            connection.start(queue: .global())
-        }
-        
-        listener?.stateUpdateHandler = { state in
-            switch state {
-            case .ready:
-                completion(true, nil)
-            case .failed(let error):
-                completion(false, error.localizedDescription)
-            default:
-                break
-            }
-        }
-        
-        listener?.start(queue: .global())
     }
     
-    func stopListening() {
-        listener?.cancel()
-        listener = nil
-    }
-    
-    private func receiveMessages(on connection: NWConnection) {
-        connection.receive(minimumIncompleteLength: 1, maximumLength: 65536) { data, _, isComplete, error in
-            if let data = data, !data.isEmpty {
-                let message = String(data: data, encoding: .utf8) ?? "Binary data (\(data.count) bytes)"
-                self.onMessageReceived?(message)
-            }
-            
-            if !isComplete {
-                self.receiveMessages(on: connection)
-            }
-        }
+    func disconnect() {
+        connection?.cancel()
+        connection = nil
+        onConnectionStatusChanged?("Disconnected", false)
     }
 }
