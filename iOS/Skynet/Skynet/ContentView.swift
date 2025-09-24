@@ -186,35 +186,48 @@ struct ContentView: View {
 // MARK: - UDP Sender
 class UDPSender {
     static func sendMessage(message: String, to host: String, port: UInt16, completion: @escaping (Bool, String?) -> Void) {
-        guard let portEndpoint = NWEndpoint.Port(rawValue: port) else {
-            completion(false, "Invalid port number")
-            return
-        }
         
+        // 1. Use the simpler, non-failable initializer for the port.
+        // No 'guard let' is needed.
+        let portEndpoint = NWEndpoint.Port(integer: port)
         let hostEndpoint = NWEndpoint.Host(host)
-        let endpoint = NWEndpoint.hostPort(host: hostEndpoint, port: portEndpoint)
-        let connection = NWConnection(to: endpoint, using: .udp)
         
-        connection.stateUpdateHandler = { state in
+        let connection = NWConnection(host: hostEndpoint, port: portEndpoint, using: .udp)
+        
+        // 2. Use a 'weak' capture list to break the retain cycle.
+        // This is the critical fix for the lifecycle bug.
+        connection.stateUpdateHandler = { [weak connection] state in
+            // Use 'guard let' to safely access the weak reference.
+            guard let connection = connection else { return }
+            
             switch state {
             case .ready:
+                print("Connection is ready, sending UDP packet...")
                 let data = message.data(using: .utf8) ?? Data()
+                
                 connection.send(content: data, completion: .contentProcessed { error in
                     if let error = error {
-                        completion(false, error.localizedDescription)
+                        print("Send error: \(error)")
+                        completion(false, "Send failed: \(error.localizedDescription)")
                     } else {
-                        completion(true, nil)
+                        print("Data sent successfully.")
+                        completion(true, "Data sent successfully.")
                     }
+                    // Cancel the connection once the send is complete.
                     connection.cancel()
                 })
+                
             case .failed(let error):
-                completion(false, error.localizedDescription)
+                print("Connection failed: \(error)")
+                completion(false, "Connection failed: \(error.localizedDescription)")
                 connection.cancel()
+                
             default:
                 break
             }
         }
         
+        // Start the connection on a background queue.
         connection.start(queue: .global())
     }
 }
