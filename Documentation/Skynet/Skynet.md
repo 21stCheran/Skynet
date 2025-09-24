@@ -4,12 +4,12 @@ This project was initialized on 21-09-2025.
 
 Skynet is red.
 
-[[Skynet]]
+[Skynet](Skynet.md)
 
-[[Propulsion]]
+[Propulsion](Physics/Propulsion.md)
 
-[[Airframe Design]]
+[Airframe Design](Avionics/Airframe%20Design.md)
 
-[[Architecture]]
+[Architecture](Avionics/Architecture.md)
 
-[[Airframe Design]]
+[Airframe Design](Avionics/Airframe%20Design.md)

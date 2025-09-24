@@ -4,11 +4,11 @@
     "type": "split",
     "children": [
       {
-        "id": "aa5e1f8c8ba67634",
+        "id": "20cf453772b3611d",
         "type": "tabs",
         "children": [
           {
-            "id": "4678797bf7d4fd95",
+            "id": "2d47e978bd261cd9",
             "type": "leaf",
             "state": {
               "type": "markdown",
@@ -168,30 +168,33 @@
       "bases:Create new base": false
     }
   },
-  "active": "4678797bf7d4fd95",
+  "active": "2d47e978bd261cd9",
   "lastOpenFiles": [
     "Avionics/Architecture.md",
     "Avionics/Airframe Design.md",
+    "10X4.5) Glass Fiber Nylon White 1CW+1CCW-1pair](Pro-Range Propellers 1045(10X4.5.md",
     "Components/Material Specsheet/F450 Q450 Quadcopter Frame.md",
     "Skynet.md",
     "Physics/Propulsion.md",
     "Physics/Propeller.md",
+    "Physics",
     "File Resources/Graph between thrust, current and RPM.png",
     "File Resources/Flight Controller.jpg",
-    "File Resources/Control Architecture Diagram.png",
-    "Components/Battery.md",
-    "Components/Motor.md",
-    "Components/Material Specsheet/NEO-6M GPS Module with EPROM.md",
-    "Components/Material Specsheet/2.4GHz NRF24L01+PA+LNA SMA Wireless Transceiver Antenna.md",
+    "File Resources",
     "Components/Material Specsheet/SimonK 30A ESC.md",
-    "Components/Material Specsheet/A2212 1000 KV BLDC Brushless DC Motor.md",
-    "Components/Material Specsheet/F4 V3S Plus Flight Controller.md",
     "Components/Material Specsheet/Pro-Range Propellers 1045(10X4.5) Glass Fiber Nylon White 1CW+1CCW-1pair.md",
+    "Components/Material Specsheet/NEO-6M GPS Module with EPROM.md",
+    "Components/Material Specsheet/F4 V3S Plus Flight Controller.md",
+    "Components/Material Specsheet/A2212 1000 KV BLDC Brushless DC Motor.md",
+    "Components/Material Specsheet/2.4GHz NRF24L01+PA+LNA SMA Wireless Transceiver Antenna.md",
+    "Components/Motor.md",
+    "Components/Material Specsheet",
+    "Components/Battery.md",
+    "Components",
+    "Avionics",
+    "File Resources/Control Architecture Diagram.png",
     "Pin-diagram.jpg",
     "Avionics/Architecture",
-    "Avionics",
-    "Components",
-    "File Resources",
     "Physics/Propulsion(6).md",
     "Physics/Propulsion(3).md",
     "Physics/Propulsion(5).md",
@@ -199,8 +202,6 @@
     "Physics/Propulsion(2).md",
     "Physics/Propulsion(1).md",
     "Untitled.md",
-    "Components/Material Specsheet",
-    "Skynet(1).md",
-    "Physics"
+    "Skynet(1).md"
   ]
 }

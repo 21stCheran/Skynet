@@ -6,4 +6,5 @@
 | Dimensions (L x W x H) mm | 36x36mm           |
 | Shipping Weight           | 0.015 kg          |
 | Shipping Dimensions       | 6 × 4 × 3 cm      |
-![[Flight Controller.jpg]]
+
+![Flight Controller](../../File%20Resources/Flight%20Controller.jpg)
