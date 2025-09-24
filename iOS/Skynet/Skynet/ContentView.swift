@@ -191,7 +191,12 @@ class UDPSender {
             return
         }
         
-        let endpoint = NWEndpoint.hostPort(host: hostEndpoint, port: NWEndpoint.Port(rawValue: port)!)
+        guard let portEndpoint = NWEndpoint.Port(rawValue: port) else {
+            completion(false, "Invalid port number")
+            return
+        }
+        
+        let endpoint = NWEndpoint.hostPort(host: hostEndpoint, port: portEndpoint)
         let connection = NWConnection(to: endpoint, using: .udp)
         
         connection.stateUpdateHandler = { state in
@@ -224,8 +229,13 @@ class UDPListener {
     var onMessageReceived: ((String) -> Void)?
     
     func startListening(on port: UInt16, completion: @escaping (Bool, String?) -> Void) {
+        guard let portEndpoint = NWEndpoint.Port(rawValue: port) else {
+            completion(false, "Invalid port number")
+            return
+        }
+        
         do {
-            listener = try NWListener(using: .udp, on: NWEndpoint.Port(rawValue: port)!)
+            listener = try NWListener(using: .udp, on: portEndpoint)
         } catch {
             completion(false, error.localizedDescription)
             return
