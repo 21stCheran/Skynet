@@ -186,16 +186,12 @@ struct ContentView: View {
 // MARK: - UDP Sender
 class UDPSender {
     static func sendMessage(message: String, to host: String, port: UInt16, completion: @escaping (Bool, String?) -> Void) {
-        guard let hostEndpoint = NWEndpoint.Host(host) else {
-            completion(false, "Invalid host address")
-            return
-        }
-        
         guard let portEndpoint = NWEndpoint.Port(rawValue: port) else {
             completion(false, "Invalid port number")
             return
         }
         
+        let hostEndpoint = NWEndpoint.Host(host)
         let endpoint = NWEndpoint.hostPort(host: hostEndpoint, port: portEndpoint)
         let connection = NWConnection(to: endpoint, using: .udp)
         
