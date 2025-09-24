@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Skynet.md",
+                "file": "Avionics/Airframe Design.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Skynet"
+              "title": "Airframe Design"
             }
           }
         ]
@@ -172,6 +172,7 @@
   "lastOpenFiles": [
     "Avionics/Architecture.md",
     "Avionics/Airframe Design.md",
+    "Components/Material Specsheet/F450 Q450 Quadcopter Frame.md",
     "Skynet.md",
     "Physics/Propulsion.md",
     "Physics/Propeller.md",
@@ -183,7 +184,6 @@
     "Components/Material Specsheet/NEO-6M GPS Module with EPROM.md",
     "Components/Material Specsheet/2.4GHz NRF24L01+PA+LNA SMA Wireless Transceiver Antenna.md",
     "Components/Material Specsheet/SimonK 30A ESC.md",
-    "Components/Material Specsheet/F450 Q450 Quadcopter Frame.md",
     "Components/Material Specsheet/A2212 1000 KV BLDC Brushless DC Motor.md",
     "Components/Material Specsheet/F4 V3S Plus Flight Controller.md",
     "Components/Material Specsheet/Pro-Range Propellers 1045(10X4.5) Glass Fiber Nylon White 1CW+1CCW-1pair.md",
