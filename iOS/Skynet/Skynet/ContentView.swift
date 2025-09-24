@@ -187,9 +187,11 @@ struct ContentView: View {
 class UDPSender {
     static func sendMessage(message: String, to host: String, port: UInt16, completion: @escaping (Bool, String?) -> Void) {
         
-        // 1. Use the simpler, non-failable initializer for the port.
-        // No 'guard let' is needed.
-        let portEndpoint = NWEndpoint.Port(integer: port)
+        // 1. Use the correct initializer for the port.
+        guard let portEndpoint = NWEndpoint.Port(rawValue: port) else {
+            completion(false, "Invalid port number")
+            return
+        }
         let hostEndpoint = NWEndpoint.Host(host)
         
         let connection = NWConnection(host: hostEndpoint, port: portEndpoint, using: .udp)
