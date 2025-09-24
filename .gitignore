@@ -1,5 +1,5 @@
-# Obsidian workspace files
-.obsidian/
+# Obsidian workspace files (ignore anywhere in project)
+**/.obsidian/
 
 # Trash folder
 .trash/
