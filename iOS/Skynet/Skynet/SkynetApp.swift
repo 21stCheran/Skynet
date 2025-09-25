@@ -2,7 +2,6 @@
 //  SkynetApp.swift
 //  Skynet
 //
-//  Created by Apple on 24/09/25.
 //
 
 import SwiftUI

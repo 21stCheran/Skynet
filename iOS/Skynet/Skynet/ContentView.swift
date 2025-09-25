@@ -2,7 +2,6 @@
 //  ContentView.swift
 //  Skynet
 //
-//  Created by Apple on 24/09/25.
 //
 
 import SwiftUI
@@ -15,10 +14,8 @@ struct ContentView: View {
     @State private var showAlert = false
     @State private var alertMessage = ""
     @State private var receivedMessages: [String] = []
-    @State private var isConnected = false
-    @State private var connectionStatus = "Disconnected"
     
-    private var udpManager = UDPManager()
+    @StateObject private var udpManager = UDPManager()
     private let userDefaults = UserDefaults.standard
     
     var body: some View {
@@ -31,11 +28,11 @@ struct ContentView: View {
             // Connection Status
             HStack {
                 Circle()
-                    .fill(isConnected ? Color.green : Color.red)
+                    .fill(udpManager.isConnected ? Color.green : Color.red)
                     .frame(width: 12, height: 12)
-                Text(connectionStatus)
+                Text(udpManager.connectionStatus)
                     .font(.subheadline)
-                    .foregroundColor(isConnected ? .green : .red)
+                    .foregroundColor(udpManager.isConnected ? .green : .red)
             }
             .padding(.bottom, 10)
             
@@ -56,10 +53,10 @@ struct ContentView: View {
             // Connection Control
             HStack {
                 Button(action: connectToUDP) {
-                    Text(isConnected ? "Disconnect" : "Connect")
+                    Text(udpManager.isConnected ? "Disconnect" : "Connect")
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(isConnected ? Color.red : Color.blue)
+                        .background(udpManager.isConnected ? Color.red : Color.blue)
                         .foregroundColor(.white)
                         .cornerRadius(10.0)
                 }
@@ -72,17 +69,17 @@ struct ContentView: View {
                 
                 TextField("Message to send", text: $message)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .disabled(!isConnected)
+                    .disabled(!udpManager.isConnected)
                 
                 Button(action: sendMessage) {
                     Text("Send UDP Data")
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(isConnected ? Color.green : Color.gray)
+                        .background(udpManager.isConnected ? Color.green : Color.gray)
                         .foregroundColor(.white)
                         .cornerRadius(10.0)
                 }
-                .disabled(!isConnected)
+                .disabled(!udpManager.isConnected)
             }
             
             // Message Log
@@ -130,13 +127,6 @@ struct ContentView: View {
                 self.receivedMessages.append("[\(timestamp)] \(message)")
             }
         }
-        
-        udpManager.onConnectionStatusChanged = { status, isConnected in
-            DispatchQueue.main.async {
-                self.connectionStatus = status
-                self.isConnected = isConnected
-            }
-        }
     }
     
     func saveSettings() {
@@ -145,7 +135,7 @@ struct ContentView: View {
     }
     
     func connectToUDP() {
-        if isConnected {
+        if udpManager.isConnected {
             udpManager.disconnect()
             return
         }
@@ -173,7 +163,7 @@ struct ContentView: View {
     }
     
     func sendMessage() {
-        guard isConnected else {
+        guard udpManager.isConnected else {
             alertMessage = "Not connected to UDP"
             showAlert = true
             return
@@ -185,152 +175,11 @@ struct ContentView: View {
             return
         }
         
-        udpManager.sendMessage(message)
+        let messageToSend = message
+        udpManager.sendMessage(messageToSend)
         message = "" // Clear message after sending
         
         print("-- sending UDP message --")
-        print("Message: \(message)")
-    }
-}
-
-// MARK: - UDP Manager
-class UDPManager {
-    private var connection: NWConnection?
-    private var hostUDP: NWEndpoint.Host?
-    private var portUDP: NWEndpoint.Port?
-    
-    var onMessageReceived: ((String) -> Void)?
-    var onConnectionStatusChanged: ((String, Bool) -> Void)?
-    
-    func connectToUDP(host: String, port: UInt16) {
-        // Disconnect any existing connection
-        disconnect()
-        
-        guard let portEndpoint = NWEndpoint.Port(rawValue: port) else {
-            onConnectionStatusChanged?("Invalid port number", false)
-            return
-        }
-        
-        hostUDP = NWEndpoint.Host(host)
-        portUDP = portEndpoint
-        
-        connection = NWConnection(host: hostUDP!, port: portUDP!, using: .udp)
-        
-        connection?.stateUpdateHandler = { [weak self] newState in
-            guard let self = self else { return }
-            
-            print("UDP Connection State: \(newState)")
-            
-            switch newState {
-            case .ready:
-                print("State: Ready")
-                DispatchQueue.main.async {
-                    self.onConnectionStatusChanged?("Connected", true)
-                }
-                self.receiveUDP()
-                
-            case .setup:
-                print("State: Setup")
-                DispatchQueue.main.async {
-                    self.onConnectionStatusChanged?("Setting up...", false)
-                }
-                
-            case .cancelled:
-                print("State: Cancelled")
-                DispatchQueue.main.async {
-                    self.onConnectionStatusChanged?("Disconnected", false)
-                }
-                
-            case .preparing:
-                print("State: Preparing")
-                DispatchQueue.main.async {
-                    self.onConnectionStatusChanged?("Preparing...", false)
-                }
-                
-            case .failed(let error):
-                print("State: Failed - \(error)")
-                DispatchQueue.main.async {
-                    self.onConnectionStatusChanged?("Failed: \(error.localizedDescription)", false)
-                }
-                
-            case .waiting(let error):
-                print("State: Waiting - \(error)")
-                DispatchQueue.main.async {
-                    self.onConnectionStatusChanged?("Waiting: \(error.localizedDescription)", false)
-                }
-                
-            @unknown default:
-                print("ERROR! State not defined!")
-                DispatchQueue.main.async {
-                    self.onConnectionStatusChanged?("Unknown state", false)
-                }
-            }
-        }
-        
-        connection?.start(queue: .global())
-    }
-    
-    func sendMessage(_ content: String) {
-        guard let connection = connection else {
-            print("No active connection")
-            return
-        }
-        
-        let contentToSendUDP = content.data(using: String.Encoding.utf8)
-        connection.send(content: contentToSendUDP, completion: NWConnection.SendCompletion.contentProcessed({ error in
-            if let error = error {
-                print("ERROR! Error when sending data. Error: \(error)")
-            } else {
-                print("Data was sent to UDP")
-            }
-        }))
-    }
-    
-    func sendMessage(_ content: Data) {
-        guard let connection = connection else {
-            print("No active connection")
-            return
-        }
-        
-        connection.send(content: content, completion: NWConnection.SendCompletion.contentProcessed({ error in
-            if let error = error {
-                print("ERROR! Error when sending data. Error: \(error)")
-            } else {
-                print("Data was sent to UDP")
-            }
-        }))
-    }
-    
-    func receiveUDP() {
-        connection?.receiveMessage { [weak self] data, context, isComplete, error in
-            guard let self = self else { return }
-            
-            if let error = error {
-                print("Receive error: \(error)")
-                return
-            }
-            
-            if isComplete {
-                print("Receive is complete")
-                if let data = data, !data.isEmpty {
-                    let backToString = String(decoding: data, as: UTF8.self)
-                    print("Received message: \(backToString)")
-                    DispatchQueue.main.async {
-                        self.onMessageReceived?(backToString)
-                    }
-                } else {
-                    print("Data == nil")
-                }
-                
-                // Continue receiving
-                self.receiveUDP()
-            }
-        }
-    }
-    
-    func disconnect() {
-        connection?.cancel()
-        connection = nil
-        onConnectionStatusChanged?("Disconnected", false)
+        print("Message: \(messageToSend)")
     }
 }
