@@ -1,66 +1,33 @@
-#include <HardwareSerial.h>
+#include <Arduino.h>
 
-// Simple ESP32 Serial2 Loopback Test
-// This test will verify that Serial2 (GPIO16 RX, GPIO17 TX) is working correctly
-// Instructions: Connect GPIO17 to GPIO16 with a jumper wire before uploading
-
-#define TEST_SERIAL Serial2
+// We are using UART port 2 (there are 3 on the ESP32: 0, 1, 2)
+// We will assign it to custom pins instead of using the default.
+HardwareSerial mySerial(2);
 
 void setup() {
-  // Start the debug serial port
+  // Serial for the computer monitor
   Serial.begin(115200);
-  Serial.println("\n=== ESP32 Serial2 Loopback Test ===");
-  Serial.println("INSTRUCTIONS:");
-  Serial.println("1. Connect GPIO2 (TX) to GPIO4 (RX) with a jumper wire");
-  Serial.println("2. Upload this code");
-  Serial.println("3. Watch for loopback data in serial monitor");
-  Serial.println("=======================================\n");
+
+  // Start our custom serial port.
+  // Format: begin(baud, config, RX_PIN, TX_PIN);
+  // We will use GPIO 25 for RX and GPIO 26 for TX.
+  mySerial.begin(115200, SERIAL_8N1, 25, 26);
   
-  // Start Serial2 at 115200 baud
-  TEST_SERIAL.begin(115200);
-  
-  delay(1000);
-  Serial.println("Starting loopback test...");
+  Serial.println("Starting NEW Loopback Test on GPIO 25 & 26...");
 }
 
 void loop() {
-  static unsigned long lastTest = 0;
-  static int testCounter = 0;
+  // Send a message out of our custom TX pin (GPIO 26)
+  mySerial.println("Hello from custom pins!");
   
-  // Send test data every 2 seconds
-  if (millis() - lastTest > 2000) {
-    lastTest = millis();
-    testCounter++;
-    
-    // Send test pattern
-    uint8_t testData[] = {0xAA, 0xBB, 0xCC, 0xDD, (uint8_t)(testCounter & 0xFF)};
-    
-    Serial.print("Test #");
-    Serial.print(testCounter);
-    Serial.print(" - Sending: ");
-    for (int i = 0; i < sizeof(testData); i++) {
-      if (testData[i] < 0x10) Serial.print("0");
-      Serial.print(testData[i], HEX);
-      Serial.print(" ");
-    }
-    Serial.println();
-    
-    // Send the data
-    TEST_SERIAL.write(testData, sizeof(testData));
+  delay(1000);
+
+  // Check if any data came back into our custom RX pin (GPIO 25)
+  if (mySerial.available()) {
+    String message = mySerial.readString();
+    Serial.print("Loopback Success! Received: ");
+    Serial.print(message);
+  } else {
+    Serial.println("Loopback FAILED. Still no data received.");
   }
-  
-  // Check for received data
-  if (TEST_SERIAL.available()) {
-    Serial.print("RECEIVED: ");
-    while (TEST_SERIAL.available()) {
-      uint8_t receivedByte = TEST_SERIAL.read();
-      if (receivedByte < 0x10) Serial.print("0");
-      Serial.print(receivedByte, HEX);
-      Serial.print(" ");
-    }
-    Serial.println(" ✓ SUCCESS - ESP32 Serial2 is working!");
-    Serial.println();
-  }
-  
-  delay(10);
 }
