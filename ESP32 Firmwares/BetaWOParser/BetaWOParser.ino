@@ -88,37 +88,71 @@ void loop() {
     }
   }
   
-  // Request essential telemetry data only (minimal set)
+  // Request comprehensive telemetry data (all available data types)
   static unsigned long lastTelemetryRequest = 0;
   
-  if (millis() - lastTelemetryRequest > 200) { // Request telemetry every 200ms (5Hz)
+  if (millis() - lastTelemetryRequest > 50) { // Request telemetry every 50ms (20Hz) - HIGH PERFORMANCE
     lastTelemetryRequest = millis();
     
-    // Only request the most essential data
+    // Request ALL available drone data for comprehensive telemetry
     
-    // MSP_ATTITUDE - Roll, Pitch, Yaw angles (most important for flight)
+    // MSP_ATTITUDE - Roll, Pitch, Yaw angles (CRITICAL for flight control)
     uint8_t msp_attitude[] = {0x24, 0x4D, 0x3C, 0x00, 0x6C, 0x6C};
     FC_SERIAL.write(msp_attitude, sizeof(msp_attitude));
+    delay(2); // Reduced delay for high-frequency operation
     
-    delay(20);
-    
-    // MSP_STATUS - Flight mode, armed state, battery
+    // MSP_STATUS - Flight mode, armed state, profile
     uint8_t msp_status[] = {0x24, 0x4D, 0x3C, 0x00, 0x65, 0x65};
     FC_SERIAL.write(msp_status, sizeof(msp_status));
+    delay(2);
     
-    delay(20);
+    // MSP_RAW_IMU - Accelerometer, Gyroscope, Magnetometer (sensor fusion)
+    uint8_t msp_raw_imu[] = {0x24, 0x4D, 0x3C, 0x00, 0x66, 0x66};
+    FC_SERIAL.write(msp_raw_imu, sizeof(msp_raw_imu));
+    delay(2);
     
-    // MSP_RAW_GPS - GPS coordinates (if available)
+    // MSP_RAW_GPS - GPS coordinates, speed, course, satellites
     uint8_t msp_raw_gps[] = {0x24, 0x4D, 0x3C, 0x00, 0x6A, 0x6A};
     FC_SERIAL.write(msp_raw_gps, sizeof(msp_raw_gps));
+    delay(2);
+    
+    // MSP_ALTITUDE - Altitude and climb rate (barometer/GPS)
+    uint8_t msp_altitude[] = {0x24, 0x4D, 0x3C, 0x00, 0x6D, 0x6D};
+    FC_SERIAL.write(msp_altitude, sizeof(msp_altitude));
+    delay(2);
+    
+    // MSP_RC - RC channel values (remote control inputs)
+    uint8_t msp_rc[] = {0x24, 0x4D, 0x3C, 0x00, 0x69, 0x69};
+    FC_SERIAL.write(msp_rc, sizeof(msp_rc));
+    delay(2);
+    
+    // MSP_MOTOR - Motor outputs (thrust values)
+    uint8_t msp_motor[] = {0x24, 0x4D, 0x3C, 0x00, 0x68, 0x68};
+    FC_SERIAL.write(msp_motor, sizeof(msp_motor));
+    delay(2);
+    
+    // MSP_ANALOG - Battery voltage, current consumption, power
+    uint8_t msp_analog[] = {0x24, 0x4D, 0x3C, 0x00, 0x6E, 0x6E};
+    FC_SERIAL.write(msp_analog, sizeof(msp_analog));
+    delay(2);
+    
+    // MSP_COMP_GPS - GPS distance/direction to home point
+    uint8_t msp_comp_gps[] = {0x24, 0x4D, 0x3C, 0x00, 0x6B, 0x6B};
+    FC_SERIAL.write(msp_comp_gps, sizeof(msp_comp_gps));
+    delay(2);
+    
+    // MSP_SERVO - Servo positions (if using servos for gimbal, etc.)
+    uint8_t msp_servo[] = {0x24, 0x4D, 0x3C, 0x00, 0x67, 0x67};
+    FC_SERIAL.write(msp_servo, sizeof(msp_servo));
   }
   
-  // Minimal status logging
+  // Comprehensive status logging
   static unsigned long lastStatusMsg = 0;
   if (millis() - lastStatusMsg > 5000) { // Every 5 seconds
     lastStatusMsg = millis();
     if (clientConnected) {
-      Serial.println("Bridge active - streaming raw MSP data to iPhone");
+      Serial.println("Bridge active - streaming FULL MSP telemetry to iPhone");
+      Serial.println("Data: Attitude, Status, IMU, GPS, Altitude, RC, Motors, Battery, Home Distance, Servos");
     } else {
       Serial.println("Waiting for iPhone connection...");
     }
