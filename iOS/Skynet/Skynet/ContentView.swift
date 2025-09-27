@@ -14,11 +14,36 @@ struct ContentView: View {
     @State private var showAlert = false
     @State private var alertMessage = ""
     @State private var receivedMessages: [String] = []
+    @State private var selectedTab: Int = 0
     
     @StateObject private var udpManager = UDPManager()
     private let userDefaults = UserDefaults.standard
     
     var body: some View {
+        TabView(selection: $selectedTab) {
+            // Connection Tab
+            connectionView
+                .tabItem {
+                    Image(systemName: "network")
+                    Text("Connection")
+                }
+                .tag(0)
+            
+            // Flight Control Tab
+            FlightControlView(udpManager: udpManager)
+                .tabItem {
+                    Image(systemName: "airplane")
+                    Text("Flight Control")
+                }
+                .tag(1)
+        }
+        .onAppear(perform: loadSettings)
+        .alert(isPresented: $showAlert) {
+            Alert(title: Text("Error"), message: Text(alertMessage), dismissButton: .default(Text("OK")))
+        }
+    }
+    
+    private var connectionView: some View {
         VStack(spacing: 18) {
             Text("Skynet Telemetry")
                 .font(.largeTitle)
@@ -110,13 +135,9 @@ struct ContentView: View {
             }
         }
         .padding(20)
-        .onAppear(perform: loadStoredSettings)
-        .alert(isPresented: $showAlert) {
-            Alert(title: Text("Status"), message: Text(alertMessage), dismissButton: .default(Text("OK")))
-        }
     }
     
-    func loadStoredSettings() {
+    func loadSettings() {
         ip = userDefaults.string(forKey: "lastUsedIP") ?? "192.168.4.1"
         port = userDefaults.string(forKey: "lastUsedPort") ?? "4210"
         
