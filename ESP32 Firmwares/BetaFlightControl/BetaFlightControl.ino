@@ -287,12 +287,6 @@ void executeEmergencyStop() {
 void parseAndExecuteCommand(String jsonCommand) {
     Serial.println("Parsing command: " + jsonCommand);
     
-    // Check if RC link is active
-    if (!rc_link_active) {
-        Serial.println("ERROR: RC link not active - command ignored");
-        return;
-    }
-    
     // Simple JSON parsing (you could use ArduinoJson library for more robust parsing)
     int commandStart = jsonCommand.indexOf("\"command\":\"") + 11;
     int commandEnd = jsonCommand.indexOf("\"", commandStart);
@@ -311,9 +305,6 @@ void parseAndExecuteCommand(String jsonCommand) {
     last_command_time = millis();
     
     // Execute the command
-    Serial.printf("EXECUTING: Command='%s', Value=%d, RC_Active=%s\n", 
-                 command.c_str(), value, rc_link_active ? "YES" : "NO");
-    
     if (command == "hover") {
         executeHoverCommand(value); // value = relative altitude change in cm
     } else if (command == "forward") {
@@ -344,6 +335,8 @@ void parseAndExecuteCommand(String jsonCommand) {
         udp.print(response);
         udp.endPacket();
     }
+
+    send_msp_set_raw_rc(rc_channels); 
 }
 
 /**
@@ -477,10 +470,6 @@ void loop() {
             rc_link_active = true; // Activate the RC link heartbeat
             Serial.print("Client connected: ");
             Serial.println(clientIp);
-            
-            // Initialize RC channels to safe values immediately
-            last_rc_packet_time = current_time;
-            Serial.println("RC link activated - ready for commands");
         }
 
         int len = udp.read(udp_buffer, sizeof(udp_buffer));
@@ -515,14 +504,6 @@ void loop() {
     if (rc_link_active && (current_time - last_rc_packet_time > RC_HEARTBEAT_INTERVAL)) {
         last_rc_packet_time = current_time;
         send_msp_set_raw_rc(rc_channels);
-        
-        // Debug output every 1 second (50 cycles at 50Hz)
-        static int heartbeat_count = 0;
-        if (++heartbeat_count >= 50) {
-            Serial.printf("RC Heartbeat active - Throttle: %d, Roll: %d, Pitch: %d, Yaw: %d\n", 
-                         rc_channels[2], rc_channels[0], rc_channels[1], rc_channels[3]);
-            heartbeat_count = 0;
-        }
     }
 
     // === Part 3: Handle Command Timeout Safety ===
