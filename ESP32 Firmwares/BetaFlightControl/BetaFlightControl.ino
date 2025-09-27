@@ -37,7 +37,9 @@ uint8_t fc_serial_buffer[256];
 // RC Link Management
 bool rc_link_active = false;
 unsigned long last_rc_packet_time = 0;
+unsigned long last_rc_activation_time = 0;
 const unsigned int RC_HEARTBEAT_INTERVAL = 20; // 20ms -> 50Hz
+const unsigned int RC_LINK_TIMEOUT = 2000; // Keep RC link active for 2 seconds after last command
 unsigned long last_command_time = 0;
 const unsigned int COMMAND_TIMEOUT = 500; // 500ms timeout for commands
 
@@ -297,12 +299,16 @@ void parseAndExecuteCommand(String jsonCommand) {
     if (valueEnd == -1) valueEnd = jsonCommand.indexOf(",", valueStart);
     int value = jsonCommand.substring(valueStart, valueEnd).toInt();
     
-    // Update current command
+    // Update current command and activate RC link
     currentCommand.type = command;
     currentCommand.value = value;
     currentCommand.timestamp = millis();
     currentCommand.active = true;
     last_command_time = millis();
+    
+    // Ensure RC link is active for this command
+    rc_link_active = true;
+    last_rc_activation_time = millis();
     
     // Execute the command
     if (command == "hover") {
@@ -465,10 +471,13 @@ void loop() {
             clientIp = udp.remoteIP();
             clientPort = udp.remotePort();
             clientConnected = true;
-            rc_link_active = true; // Activate the RC link heartbeat
             Serial.print("Client connected: ");
             Serial.println(clientIp);
         }
+        
+        // Always activate RC link when receiving any command
+        rc_link_active = true;
+        last_rc_activation_time = current_time;
 
         int len = udp.read(udp_buffer, sizeof(udp_buffer));
         if (len > 0) {
@@ -499,6 +508,12 @@ void loop() {
     }
 
     // === Part 2: Maintain RC Link Heartbeat (CRITICAL FOR FAILSAFE) ===
+    // Auto-deactivate RC link after timeout for safety
+    if (rc_link_active && (current_time - last_rc_activation_time > RC_LINK_TIMEOUT)) {
+        rc_link_active = false;
+        Serial.println("RC Link deactivated due to timeout");
+    }
+    
     if (rc_link_active && (current_time - last_rc_packet_time > RC_HEARTBEAT_INTERVAL)) {
         last_rc_packet_time = current_time;
         send_msp_set_raw_rc(rc_channels);
