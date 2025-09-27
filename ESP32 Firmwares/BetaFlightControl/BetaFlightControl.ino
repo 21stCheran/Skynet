@@ -205,14 +205,27 @@ uint16_t calculateHoverThrottle(int target_altitude_cm) {
 }
 
 /**
- * @brief Executes hover command at specified altitude
+ * @brief Executes hover command with relative altitude change
  * Uses INAV's altitude feedback for closed-loop control
  */
-void executeHoverCommand(int altitude_cm) {
-    Serial.printf("HOVER: Executing hover at %d cm\n", altitude_cm);
+void executeHoverCommand(int relative_altitude_cm) {
+    // Calculate absolute target altitude from current position + relative change
+    int target_altitude_cm = altitude_data.current_altitude_cm + relative_altitude_cm;
+    
+    Serial.printf("HOVER: Relative change %+d cm (Current: %d cm -> Target: %d cm)\n", 
+                 relative_altitude_cm, altitude_data.current_altitude_cm, target_altitude_cm);
+    
+    // Safety check: ensure target altitude is reasonable
+    if (target_altitude_cm < 10) {
+        Serial.printf("WARNING: Target altitude %d cm too low, setting to 10 cm\n", target_altitude_cm);
+        target_altitude_cm = 10;
+    } else if (target_altitude_cm > 1000) {
+        Serial.printf("WARNING: Target altitude %d cm too high, setting to 1000 cm\n", target_altitude_cm);
+        target_altitude_cm = 1000;
+    }
     
     // Method 1: Use our own altitude control (current approach)
-    uint16_t hover_throttle = calculateHoverThrottle(altitude_cm);
+    uint16_t hover_throttle = calculateHoverThrottle(target_altitude_cm);
     
     // Reset all controls to center except throttle
     setRCChannel(0, RC_CENTER); // Roll center
@@ -224,8 +237,8 @@ void executeHoverCommand(int altitude_cm) {
     // This would involve setting AUX channels to activate ALTHOLD mode
     // and letting INAV handle altitude maintenance automatically
     
-    Serial.printf("HOVER: Throttle set to %d (Current alt: %d cm)\n", 
-                 hover_throttle, altitude_data.current_altitude_cm);
+    Serial.printf("HOVER: Throttle set to %d (Target: %d cm, Current: %d cm)\n", 
+                 hover_throttle, target_altitude_cm, altitude_data.current_altitude_cm);
 }
 
 /**
@@ -293,7 +306,7 @@ void parseAndExecuteCommand(String jsonCommand) {
     
     // Execute the command
     if (command == "hover") {
-        executeHoverCommand(value); // value = altitude in cm
+        executeHoverCommand(value); // value = relative altitude change in cm
     } else if (command == "forward") {
         executeMovementCommand("forward", value); // value = intensity 0-100
     } else if (command == "backward") {
@@ -329,10 +342,10 @@ void parseAndExecuteCommand(String jsonCommand) {
  */
 void handleCommandTimeout() {
     if (currentCommand.active && (millis() - last_command_time > COMMAND_TIMEOUT)) {
-        Serial.println("SAFETY: Command timeout - returning to hover");
+        Serial.println("SAFETY: Command timeout - maintaining current altitude");
         
-        // Fallback to safe hover state
-        executeHoverCommand(50); // Default 50cm hover
+        // Fallback to safe hover state (no altitude change)
+        executeHoverCommand(0); // Maintain current altitude (0 relative change)
         currentCommand.active = false;
     }
 }
