@@ -15,6 +15,8 @@ import {
   Chip,
   Divider,
   Paper,
+  Switch,
+  FormControlLabel,
 } from "@mui/material";
 import {
   FlightTakeoff,
@@ -43,13 +45,14 @@ const FlightControlPanel = ({
   const [customAltitude, setCustomAltitude] = useState(50);
   const [movementIntensity, setMovementIntensity] = useState(30);
   const [lastCommandSent, setLastCommandSent] = useState("");
+  const [safeMode, setSafeMode] = useState(true); // NEW: Safe mode state
 
   const sendCommand = (commandFunction, description) => {
     if (!isConnected) return;
 
-    const command = commandFunction();
+    const command = commandFunction(safeMode); // Pass safe mode to command function
     onSendCommand(command);
-    setLastCommandSent(description);
+    setLastCommandSent(description + (safeMode ? " (Safe)" : " (Unsafe)"));
   };
 
   const handleArm = () => {
@@ -58,7 +61,11 @@ const FlightControlPanel = ({
   };
 
   const handleDisarm = () => {
-    sendCommand(FlightCommands.disarm, "DISARM");
+    if (safeMode) {
+      sendCommand(FlightCommands.safeDisarm, "SAFE DISARM");
+    } else {
+      sendCommand(FlightCommands.disarm, "DISARM");
+    }
     setIsArmed(false);
   };
 
@@ -100,6 +107,34 @@ const FlightControlPanel = ({
           label={isArmed ? "ARMED" : "DISARMED"}
           color={isArmed ? "error" : "success"}
           variant="filled"
+        />
+        <Chip
+          label={safeMode ? "SAFE MODE" : "UNSAFE MODE"}
+          color={safeMode ? "success" : "warning"}
+          variant="outlined"
+        />
+      </Box>
+      <Box display="flex" alignItems="center" gap={2} mb={2}>
+        <FormControlLabel
+          control={
+            <Switch
+              checked={safeMode}
+              onChange={(e) => setSafeMode(e.target.checked)}
+              color="warning"
+            />
+          }
+          label={
+            <Box>
+              <Typography variant="body2">
+                Safe Mode {safeMode ? "ON" : "OFF"}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {safeMode 
+                  ? "Motors maintain minimum safe speed when armed"
+                  : "CAUTION: Full power control available"}
+              </Typography>
+            </Box>
+          }
         />
       </Box>
       <Grid container spacing={2}>

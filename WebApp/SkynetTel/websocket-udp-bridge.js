@@ -42,27 +42,25 @@ wss.on("connection", (ws, req) => {
     })
   );
 
-  // Handle messages from web client
+  // Handle messages from web client - OPTIMIZED FOR SPEED
   ws.on("message", (data) => {
     try {
       const message = data.toString();
-      console.log(`📤 Web->ESP32: ${message}`);
+      
+      // Reduce console logging for flight commands to improve performance
+      const isFlightCommand = message.includes('"command"');
+      if (!isFlightCommand) {
+        console.log(`📤 Web->ESP32: ${message}`);
+      }
 
-      // Forward message to ESP32 via UDP
-      udpClient.send(message, ESP32_PORT, ESP32_IP, (err) => {
-        if (err) {
-          console.error(`❌ UDP send error: ${err.message}`);
-          ws.send(
-            JSON.stringify({
-              type: "error",
-              message: `Failed to send to ESP32: ${err.message}`,
-              timestamp: new Date().toISOString(),
-            })
-          );
-        } else {
-          console.log(`✅ Message forwarded to ESP32`);
-        }
-      });
+      // Forward message to ESP32 via UDP - no callback for speed
+      udpClient.send(message, ESP32_PORT, ESP32_IP);
+      
+      // Only log success for non-flight commands to reduce overhead
+      if (!isFlightCommand) {
+        console.log(`✅ Message forwarded to ESP32`);
+      }
+      
     } catch (error) {
       console.error(`❌ Message processing error: ${error.message}`);
       ws.send(
@@ -86,24 +84,27 @@ wss.on("connection", (ws, req) => {
   });
 });
 
-// Handle UDP responses from ESP32
+// Handle UDP responses from ESP32 - OPTIMIZED FOR SPEED
 udpClient.on("message", (message, remote) => {
   const messageStr = message.toString();
-  console.log(
-    `📥 ESP32->Web: ${messageStr} from ${remote.address}:${remote.port}`
-  );
+  
+  // Reduce logging for frequent telemetry/status messages
+  const isTelemetryMessage = messageStr.includes('"status"') || messageStr.includes('executed');
+  if (!isTelemetryMessage) {
+    console.log(`📥 ESP32->Web: ${messageStr} from ${remote.address}:${remote.port}`);
+  }
 
-  // Forward response to all connected web clients
+  // Forward response to all connected web clients - simplified for speed
+  const responseData = JSON.stringify({
+    type: "response",
+    message: messageStr,
+    timestamp: new Date().toISOString(),
+    source: `${remote.address}:${remote.port}`,
+  });
+
   wss.clients.forEach((client) => {
     if (client.readyState === client.OPEN) {
-      client.send(
-        JSON.stringify({
-          type: "response",
-          message: messageStr,
-          timestamp: new Date().toISOString(),
-          source: `${remote.address}:${remote.port}`,
-        })
-      );
+      client.send(responseData);
     }
   });
 });

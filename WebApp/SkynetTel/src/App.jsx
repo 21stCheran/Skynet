@@ -17,6 +17,7 @@ import { FlightTakeoff, Memory, NetworkWifi } from "@mui/icons-material";
 import { useESP32Connection } from "./hooks/useESP32Connection";
 import ConnectionPanel from "./components/ConnectionPanel";
 import FlightControlPanel from "./components/FlightControlPanel";
+import XboxController from "./components/XboxController";
 import TelemetryPanel from "./components/TelemetryPanel";
 
 // Create a professional dark theme for the drone interface
@@ -157,6 +158,14 @@ function App() {
 
               {/* Flight Control Panel */}
               <FlightControlPanel
+                isConnected={isConnected}
+                onSendCommand={handleSendCommand}
+                isArmed={isArmed}
+                setIsArmed={setIsArmed}
+              />
+
+              {/* Xbox Controller Panel */}
+              <XboxController
                 isConnected={isConnected}
                 onSendCommand={handleSendCommand}
                 isArmed={isArmed}
