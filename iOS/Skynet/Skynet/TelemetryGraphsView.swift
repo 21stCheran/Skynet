@@ -4,7 +4,9 @@
 //
 
 import SwiftUI
+#if canImport(Charts)
 import Charts
+#endif
 
 struct TelemetryGraphsView: View {
     @EnvironmentObject var droneManager: DroneManager
@@ -24,54 +26,94 @@ struct TelemetryGraphsView: View {
             
             // Altitude Graph
             GraphCard(title: "Altitude (cm)", color: .blue) {
-                Chart(altitudeHistory) { point in
-                    LineMark(
-                        x: .value("Time", point.timestamp),
-                        y: .value("Altitude", point.value)
-                    )
-                    .foregroundStyle(.blue)
+                #if canImport(Charts)
+                if #available(iOS 16.0, *) {
+                    Chart(altitudeHistory) { point in
+                        LineMark(
+                            x: .value("Time", point.timestamp),
+                            y: .value("Altitude", point.value)
+                        )
+                        .foregroundStyle(.blue)
+                    }
+                    .chartYAxisLabel("cm")
+                    .frame(height: 100)
+                } else {
+                    SimpleGraphView(data: altitudeHistory, color: .blue)
+                        .frame(height: 100)
                 }
-                .chartYAxisLabel("cm")
-                .frame(height: 100)
+                #else
+                SimpleGraphView(data: altitudeHistory, color: .blue)
+                    .frame(height: 100)
+                #endif
             }
             
             // Attitude Graphs
             HStack(spacing: 15) {
                 GraphCard(title: "Roll (°)", color: .red) {
-                    Chart(rollHistory) { point in
-                        LineMark(
-                            x: .value("Time", point.timestamp),
-                            y: .value("Roll", point.value)
-                        )
-                        .foregroundStyle(.red)
+                    #if canImport(Charts)
+                    if #available(iOS 16.0, *) {
+                        Chart(rollHistory) { point in
+                            LineMark(
+                                x: .value("Time", point.timestamp),
+                                y: .value("Roll", point.value)
+                            )
+                            .foregroundStyle(.red)
+                        }
+                        .chartYAxisLabel("°")
+                        .frame(height: 80)
+                    } else {
+                        SimpleGraphView(data: rollHistory, color: .red)
+                            .frame(height: 80)
                     }
-                    .chartYAxisLabel("°")
-                    .frame(height: 80)
+                    #else
+                    SimpleGraphView(data: rollHistory, color: .red)
+                        .frame(height: 80)
+                    #endif
                 }
                 
                 GraphCard(title: "Pitch (°)", color: .green) {
-                    Chart(pitchHistory) { point in
-                        LineMark(
-                            x: .value("Time", point.timestamp),
-                            y: .value("Pitch", point.value)
-                        )
-                        .foregroundStyle(.green)
+                    #if canImport(Charts)
+                    if #available(iOS 16.0, *) {
+                        Chart(pitchHistory) { point in
+                            LineMark(
+                                x: .value("Time", point.timestamp),
+                                y: .value("Pitch", point.value)
+                            )
+                            .foregroundStyle(.green)
+                        }
+                        .chartYAxisLabel("°")
+                        .frame(height: 80)
+                    } else {
+                        SimpleGraphView(data: pitchHistory, color: .green)
+                            .frame(height: 80)
                     }
-                    .chartYAxisLabel("°")
-                    .frame(height: 80)
+                    #else
+                    SimpleGraphView(data: pitchHistory, color: .green)
+                        .frame(height: 80)
+                    #endif
                 }
             }
             
             GraphCard(title: "Yaw (°)", color: .orange) {
-                Chart(yawHistory) { point in
-                    LineMark(
-                        x: .value("Time", point.timestamp),
-                        y: .value("Yaw", point.value)
-                    )
-                    .foregroundStyle(.orange)
+                #if canImport(Charts)
+                if #available(iOS 16.0, *) {
+                    Chart(yawHistory) { point in
+                        LineMark(
+                            x: .value("Time", point.timestamp),
+                            y: .value("Yaw", point.value)
+                        )
+                        .foregroundStyle(.orange)
+                    }
+                    .chartYAxisLabel("°")
+                    .frame(height: 100)
+                } else {
+                    SimpleGraphView(data: yawHistory, color: .orange)
+                        .frame(height: 100)
                 }
-                .chartYAxisLabel("°")
-                .frame(height: 100)
+                #else
+                SimpleGraphView(data: yawHistory, color: .orange)
+                    .frame(height: 100)
+                #endif
             }
         }
         .padding()
@@ -135,6 +177,41 @@ struct DataPoint: Identifiable {
     let id = UUID()
     let timestamp: Date
     let value: Double
+}
+
+// MARK: - Simple Graph Fallback
+struct SimpleGraphView: View {
+    let data: [DataPoint]
+    let color: Color
+    
+    var body: some View {
+        GeometryReader { geometry in
+            if !data.isEmpty {
+                let maxValue = data.map(\.value).max() ?? 1
+                let minValue = data.map(\.value).min() ?? 0
+                let valueRange = maxValue - minValue
+                
+                Path { path in
+                    for (index, point) in data.enumerated() {
+                        let x = CGFloat(index) / CGFloat(max(data.count - 1, 1)) * geometry.size.width
+                        let normalizedValue = valueRange > 0 ? (point.value - minValue) / valueRange : 0.5
+                        let y = geometry.size.height - (normalizedValue * geometry.size.height)
+                        
+                        if index == 0 {
+                            path.move(to: CGPoint(x: x, y: y))
+                        } else {
+                            path.addLine(to: CGPoint(x: x, y: y))
+                        }
+                    }
+                }
+                .stroke(color, lineWidth: 2)
+            } else {
+                Text("No Data")
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
+    }
 }
 
 #Preview {

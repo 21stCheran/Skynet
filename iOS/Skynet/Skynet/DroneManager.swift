@@ -147,58 +147,7 @@ class DroneManager: ObservableObject {
     }
 }
 
-// MARK: - Data Structures
-
-struct AttitudeData {
-    var roll: Float = 0.0    // degrees
-    var pitch: Float = 0.0   // degrees  
-    var yaw: Float = 0.0     // degrees
-}
-
-struct AltitudeData {
-    var altitude: Float = 0.0      // cm
-    var velocity: Float = 0.0      // cm/s
-}
-
-struct GPSData {
-    var fix: Bool = false
-    var satellites: Int = 0
-    var latitude: Double = 0.0
-    var longitude: Double = 0.0
-    var altitude: Float = 0.0      // meters
-    var speed: Float = 0.0         // m/s
-    var course: Float = 0.0        // degrees
-}
-
-struct StatusData {
-    var cycleTime: Int = 0
-    var i2cErrors: Int = 0
-    var isArmed: Bool = false
-    var flightMode: String = "UNKNOWN"
-    var batteryVoltage: Float = 0.0
-}
-
-struct RCData {
-    var channels: [Int] = Array(repeating: 1500, count: 8)
-    
-    var roll: Int { channels.count > 0 ? channels[0] : 1500 }
-    var pitch: Int { channels.count > 1 ? channels[1] : 1500 }
-    var throttle: Int { channels.count > 2 ? channels[2] : 1000 }
-    var yaw: Int { channels.count > 3 ? channels[3] : 1500 }
-    var aux1: Int { channels.count > 4 ? channels[4] : 1000 }
-}
-
-struct RawIMUData {
-    var accelX: Float = 0.0
-    var accelY: Float = 0.0
-    var accelZ: Float = 0.0
-    var gyroX: Float = 0.0
-    var gyroY: Float = 0.0
-    var gyroZ: Float = 0.0
-    var magX: Float = 0.0
-    var magY: Float = 0.0
-    var magZ: Float = 0.0
-}
+// MARK: - Data Structures are now defined in MSPParser.swift
 
 // MARK: - Command Enum
 

@@ -4,7 +4,9 @@
 //
 
 import SwiftUI
+#if canImport(GameController)
 import GameController
+#endif
 
 struct GameControllerView: View {
     @EnvironmentObject var droneManager: DroneManager
