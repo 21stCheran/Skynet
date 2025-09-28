@@ -14,6 +14,7 @@ export const FLIGHT_COMMANDS = {
   // Movement
   HOVER: "hover",
   SAFE_HOVER: "safe_hover", // New: Hover with minimum safe throttle
+  THROTTLE_PERCENTAGE: "throttle_percentage", // New: Direct throttle percentage control
   FORWARD: "forward",
   BACKWARD: "backward",
   LEFT: "left",
@@ -34,6 +35,10 @@ export const SAFE_FLIGHT_PARAMS = {
   THROTTLE_HOVER_BASE: 1450, // Base hover throttle
   MOVEMENT_MAX_SAFE: 60, // Maximum movement intensity in safe mode
   MOVEMENT_MAX_UNSAFE: 80, // Maximum movement intensity in unsafe mode
+  THROTTLE_PERCENTAGE_MIN: 0, // Minimum throttle percentage
+  THROTTLE_PERCENTAGE_MAX: 100, // Maximum throttle percentage
+  THROTTLE_PERCENTAGE_SAFE_MIN: 20, // Minimum safe throttle percentage (20% = 1200)
+  THROTTLE_PERCENTAGE_SAFE_MAX: 80, // Maximum safe throttle percentage (80% = 1800)
 };
 
 export const HOVER_PRESETS = {
@@ -78,6 +83,12 @@ export const createFlightCommand = (command, value = 0, safeMode = true) => {
           safeValue = Math.max(SAFE_FLIGHT_PARAMS.THROTTLE_SAFE_MIN, 
                               Math.min(altitudeThrottle, SAFE_FLIGHT_PARAMS.THROTTLE_SAFE_MAX));
         }
+        break;
+
+      case FLIGHT_COMMANDS.THROTTLE_PERCENTAGE:
+        // Ensure throttle percentage is within safe range (20%-80% in safe mode)
+        safeValue = Math.max(SAFE_FLIGHT_PARAMS.THROTTLE_PERCENTAGE_SAFE_MIN,
+                           Math.min(value, SAFE_FLIGHT_PARAMS.THROTTLE_PERCENTAGE_SAFE_MAX));
         break;
         
       case FLIGHT_COMMANDS.FORWARD:
@@ -142,6 +153,9 @@ export const FlightCommands = {
   yawLeft: (intensity, safeMode = true) => createFlightCommand(FLIGHT_COMMANDS.YAW_LEFT, intensity, safeMode),
   yawRight: (intensity, safeMode = true) => createFlightCommand(FLIGHT_COMMANDS.YAW_RIGHT, intensity, safeMode),
 
+  // Throttle percentage commands (new)
+  throttlePercentage: (percentage, safeMode = true) => createFlightCommand(FLIGHT_COMMANDS.THROTTLE_PERCENTAGE, percentage, safeMode),
+
   // Xbox controller specific commands
   xbox: {
     throttle: (stickValue, safeMode = true) => {
@@ -189,10 +203,19 @@ export const validateFlightCommand = (command, value) => {
       }
       break;
 
+    case FLIGHT_COMMANDS.THROTTLE_PERCENTAGE:
+      if (value < 0 || value > 100) {
+        result.isValid = false;
+        result.error = "Throttle percentage must be between 0-100%";
+      }
+      break;
+
     case FLIGHT_COMMANDS.FORWARD:
     case FLIGHT_COMMANDS.BACKWARD:
     case FLIGHT_COMMANDS.LEFT:
     case FLIGHT_COMMANDS.RIGHT:
+    case FLIGHT_COMMANDS.YAW_LEFT:
+    case FLIGHT_COMMANDS.YAW_RIGHT:
       if (value < 10 || value > 100) {
         result.isValid = false;
         result.error = "Movement intensity must be between 10-100%";
@@ -215,20 +238,28 @@ export const getCommandDescription = (command, value) => {
       return "Sets AUX1 to 2000 (Armed state)";
     case FLIGHT_COMMANDS.DISARM:
       return "Sets AUX1 to 1000 (Disarmed), cuts throttle";
+    case FLIGHT_COMMANDS.SAFE_DISARM:
+      return "Gradually reduces throttle with minimum motor speed maintenance";
     case FLIGHT_COMMANDS.EMERGENCY_STOP:
       return "Immediately cuts throttle and disarms";
     case FLIGHT_COMMANDS.HOVER:
       return `Sets throttle to ~${1450 + value * 2} for ${value}cm hover`;
+    case FLIGHT_COMMANDS.THROTTLE_PERCENTAGE: {
+      const rcValue = Math.round(1000 + (value * 10)); // 0% = 1000, 100% = 2000
+      return `Sets throttle to ${rcValue} (${value}% power)`;
+    }
     case FLIGHT_COMMANDS.FORWARD:
       return `Sets pitch to ${1500 + Math.floor(value * 3)} (forward movement)`;
     case FLIGHT_COMMANDS.BACKWARD:
-      return `Sets pitch to ${
-        1500 - Math.floor(value * 3)
-      } (backward movement)`;
+      return `Sets pitch to ${1500 - Math.floor(value * 3)} (backward movement)`;
     case FLIGHT_COMMANDS.LEFT:
       return `Sets roll to ${1500 - Math.floor(value * 3)} (left movement)`;
     case FLIGHT_COMMANDS.RIGHT:
       return `Sets roll to ${1500 + Math.floor(value * 3)} (right movement)`;
+    case FLIGHT_COMMANDS.YAW_LEFT:
+      return `Sets yaw to ${1500 - Math.floor(value * 3)} (yaw left)`;
+    case FLIGHT_COMMANDS.YAW_RIGHT:
+      return `Sets yaw to ${1500 + Math.floor(value * 3)} (yaw right)`;
     default:
       return "Unknown command behavior";
   }

@@ -78,14 +78,14 @@ struct ControllerLayoutView: View {
     var body: some View {
         GroupBox("Control Layout") {
             VStack(alignment: .leading, spacing: 12) {
-                ControlMappingRow(control: "R2", action: "Altitude +10cm", color: .green)
-                ControlMappingRow(control: "L2", action: "Altitude -10cm", color: .orange)
+                ControlMappingRow(control: "R2", action: "Throttle +5%", color: .green)
+                ControlMappingRow(control: "L2", action: "Throttle -5%", color: .orange)
                 ControlMappingRow(control: "D-Pad", action: "Movement (↑↓←→)", color: .blue)
-                ControlMappingRow(control: "R1", action: "Yaw Right (90°)", color: .purple)
-                ControlMappingRow(control: "L1", action: "Yaw Left (90°)", color: .purple)
-                ControlMappingRow(control: "Square", action: "Arm Drone", color: .green)
-                ControlMappingRow(control: "Circle", action: "Safe Disarm", color: .orange)
-                ControlMappingRow(control: "Triangle", action: "Emergency Stop", color: .red)
+                ControlMappingRow(control: "R1", action: "Yaw Right (45°)", color: .purple)
+                ControlMappingRow(control: "L1", action: "Yaw Left (45°)", color: .purple)
+                ControlMappingRow(control: "X", action: "Arm Drone", color: .green)
+                ControlMappingRow(control: "A", action: "Safe Disarm", color: .orange)
+                ControlMappingRow(control: "Y", action: "Emergency Stop", color: .red)
             }
             .padding()
         }

@@ -9,6 +9,7 @@ struct ManualControlView: View {
     @EnvironmentObject var droneManager: DroneManager
     @State private var movementIntensity: Double = 30
     @State private var throttleValue: Double = 1450
+    @State private var manualThrottlePercentage: Double = 0
     
     var body: some View {
         ScrollView {
@@ -21,11 +22,15 @@ struct ManualControlView: View {
                 MovementControlSection(intensity: $movementIntensity)
                     .environmentObject(droneManager)
                 
-                // Altitude Controls
-                AltitudeControlSection()
+                // Throttle Percentage Controls
+                ThrottlePercentageControlSection()
                     .environmentObject(droneManager)
                 
-                // Throttle Control
+                // Manual Throttle Percentage Input
+                ManualThrottlePercentageSection(manualThrottlePercentage: $manualThrottlePercentage)
+                    .environmentObject(droneManager)
+                
+                // Legacy Throttle Control (for compatibility)
                 ThrottleControlSection(throttleValue: $throttleValue)
                     .environmentObject(droneManager)
                 
@@ -128,43 +133,90 @@ struct MovementControlSection: View {
     }
 }
 
-struct AltitudeControlSection: View {
+struct ThrottlePercentageControlSection: View {
     @EnvironmentObject var droneManager: DroneManager
     
     var body: some View {
-        GroupBox("Altitude Controls") {
+        GroupBox("Throttle Percentage Controls") {
             VStack(spacing: 15) {
-                Text("Current Offset: \(droneManager.currentAltitudeOffset)cm")
+                Text("Current Throttle: \(droneManager.currentThrottlePercentage)%")
                     .font(.headline)
                     .foregroundColor(.primary)
                 
                 HStack(spacing: 20) {
-                    ControlButton(title: "+50cm", icon: "arrow.up.circle", color: .green) {
-                        droneManager.adjustAltitude(by: 50)
+                    ControlButton(title: "+20%", icon: "plus.circle.fill", color: .green) {
+                        droneManager.adjustThrottlePercentage(by: 20)
                     }
                     
-                    ControlButton(title: "+10cm", icon: "arrow.up", color: .green) {
-                        droneManager.adjustAltitude(by: 10)
+                    ControlButton(title: "+5%", icon: "plus.circle", color: .green) {
+                        droneManager.adjustThrottlePercentage(by: 5)
                     }
                     
-                    ControlButton(title: "-10cm", icon: "arrow.down", color: .orange) {
-                        droneManager.adjustAltitude(by: -10)
+                    ControlButton(title: "-5%", icon: "minus.circle", color: .orange) {
+                        droneManager.adjustThrottlePercentage(by: -5)
                     }
                     
-                    ControlButton(title: "-50cm", icon: "arrow.down.circle", color: .orange) {
-                        droneManager.adjustAltitude(by: -50)
+                    ControlButton(title: "-20%", icon: "minus.circle.fill", color: .orange) {
+                        droneManager.adjustThrottlePercentage(by: -20)
                     }
                 }
                 
-                Button(action: { droneManager.adjustAltitude(by: -droneManager.currentAltitudeOffset) }) {
-                    Text("Reset to Ground Level")
+                Button(action: { droneManager.setThrottlePercentage(0) }) {
+                    Text("Reset to 0%")
                         .frame(maxWidth: .infinity)
                         .padding()
                         .background(Color.gray)
                         .foregroundColor(.white)
                         .cornerRadius(10)
                 }
-                .disabled(droneManager.currentAltitudeOffset == 0)
+                .disabled(droneManager.currentThrottlePercentage == 0)
+            }
+            .padding()
+        }
+    }
+}
+
+struct ManualThrottlePercentageSection: View {
+    @EnvironmentObject var droneManager: DroneManager
+    @Binding var manualThrottlePercentage: Double
+    
+    var body: some View {
+        GroupBox("Manual Throttle Percentage") {
+            VStack(spacing: 15) {
+                Text("Set Throttle: \(Int(manualThrottlePercentage))%")
+                    .font(.headline)
+                    .foregroundColor(.primary)
+                
+                Slider(value: $manualThrottlePercentage, in: 0...100, step: 1)
+                    .accentColor(.blue)
+                
+                HStack {
+                    Text("0%")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    
+                    Spacer()
+                    
+                    Text("50%")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    
+                    Spacer()
+                    
+                    Text("100%")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                
+                Button(action: { droneManager.setThrottlePercentage(Int(manualThrottlePercentage)) }) {
+                    Text("Apply Throttle Percentage")
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.blue)
+                        .foregroundColor(.white)
+                        .cornerRadius(10)
+                }
+                .disabled(!droneManager.isArmed || !droneManager.isConnected)
             }
             .padding()
         }
@@ -176,7 +228,7 @@ struct ThrottleControlSection: View {
     @Binding var throttleValue: Double
     
     var body: some View {
-        GroupBox("Direct Throttle Control") {
+        GroupBox("Legacy Direct Throttle Control") {
             VStack(spacing: 15) {
                 Text("Throttle: \(Int(throttleValue))")
                     .font(.headline)
@@ -204,7 +256,7 @@ struct ThrottleControlSection: View {
                 }
                 
                 Button(action: { droneManager.safeHover(throttle: Int(throttleValue)) }) {
-                    Text("Apply Throttle")
+                    Text("Apply Legacy Throttle")
                         .frame(maxWidth: .infinity)
                         .padding()
                         .background(Color.red)

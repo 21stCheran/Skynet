@@ -62,5 +62,7 @@
 	<array>
 		<string>_mavlink._udp</string>
 	</array>
+	<key>GCSupportsControllerUserInteraction</key>
+	<true/>
 </dict>
 </plist>

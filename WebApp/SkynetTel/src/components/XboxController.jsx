@@ -21,6 +21,26 @@ import {
   Height,
 } from "@mui/icons-material";
 
+// Controller button mapping - moved outside component to avoid re-renders
+const BUTTON_MAP = {
+  A: 0, // Xbox A - Safe Disarm
+  B: 1, // Xbox B - Reset Throttle
+  X: 2, // Xbox X - Arm
+  Y: 3, // Xbox Y - Emergency Stop
+  LB: 4, // Left Bumper - Yaw Left
+  RB: 5, // Right Bumper - Yaw Right
+  LT: 6, // Left Trigger (as button)
+  RT: 7, // Right Trigger (as button)
+  BACK: 8, // Back/Select
+  START: 9, // Start/Menu
+  LS: 10, // Left Stick Click
+  RS: 11, // Right Stick Click
+  DPAD_UP: 12,
+  DPAD_DOWN: 13,
+  DPAD_LEFT: 14,
+  DPAD_RIGHT: 15,
+};
+
 const XboxController = ({
   isConnected,
   onSendCommand,
@@ -44,6 +64,8 @@ const XboxController = ({
     rightStick: { x: 0, y: 0 },
     triggers: { left: 0, right: 0 },
   });
+  const [currentThrottlePercentage, setCurrentThrottlePercentage] = useState(0);
+  const [previousTriggerStates, setPreviousTriggerStates] = useState({ left: 0, right: 0 });
   const [lastCommandTime, setLastCommandTime] = useState(0);
   const [performanceStats, setPerformanceStats] = useState({
     updateRate: 0,
@@ -60,25 +82,7 @@ const XboxController = ({
   const UPDATE_RATE = 16; // 16ms = ~60Hz update rate (much more responsive)
   const COMMAND_THROTTLE_RATE = 33; // 33ms = 30Hz command sending (balanced for network)
 
-  // Controller button mapping
-  const BUTTON_MAP = {
-    A: 0, // Xbox A - Arm/Disarm
-    B: 1, // Xbox B - Emergency Stop
-    X: 2, // Xbox X - Toggle Safe Mode
-    Y: 3, // Xbox Y - Auto Hover
-    LB: 4, // Left Bumper
-    RB: 5, // Right Bumper
-    LT: 6, // Left Trigger (as button)
-    RT: 7, // Right Trigger (as button)
-    BACK: 8, // Back/Select
-    START: 9, // Start/Menu
-    LS: 10, // Left Stick Click
-    RS: 11, // Right Stick Click
-    DPAD_UP: 12,
-    DPAD_DOWN: 13,
-    DPAD_LEFT: 14,
-    DPAD_RIGHT: 15,
-  };
+  // Safe flight parameters
 
   // Apply deadzone with smooth curve for better control feel
   const applyDeadzone = useCallback((value) => {
@@ -111,16 +115,7 @@ const XboxController = ({
            Math.abs(current.triggers.right - previous.triggers.right) > threshold;
   }, []);
 
-  // Convert stick values to safe ranges
-  const mapStickToThrottle = useCallback((stickValue) => {
-    if (!safeMode) {
-      // Full range in unsafe mode
-      return Math.round(1000 + (stickValue + 1) * 500); // 1000-2000
-    }
-    // Safe range
-    const range = SAFE_THROTTLE_MAX - SAFE_THROTTLE_MIN;
-    return Math.round(SAFE_THROTTLE_MIN + (stickValue + 1) * (range / 2));
-  }, [safeMode]);
+  // Convert stick values to movement intensity (removed throttle mapping since we use percentage now)
 
   const mapStickToMovement = useCallback((stickValue) => {
     const maxIntensity = safeMode ? SAFE_MOVEMENT_MAX : 80;
@@ -202,32 +197,53 @@ const XboxController = ({
       return acc;
     }, {});
     
-    // A Button - Toggle Arm/Disarm
-    if (gamepad.buttons[BUTTON_MAP.A]?.pressed && !previousButtons[BUTTON_MAP.A]) {
-      if (isArmed) {
-        sendSafeCommand("disarm", 0, "Xbox A - Disarm");
-        setIsArmed(false);
-      } else {
-        sendSafeCommand("arm", 1, "Xbox A - Arm");
+    // X Button - Arm Drone
+    if (gamepad.buttons[BUTTON_MAP.X]?.pressed && !previousButtons[BUTTON_MAP.X]) {
+      if (!isArmed) {
+        sendSafeCommand("arm", 1, "Xbox X - Arm");
         setIsArmed(true);
       }
     }
 
-    // B Button - Emergency Stop
-    if (gamepad.buttons[BUTTON_MAP.B]?.pressed && !previousButtons[BUTTON_MAP.B]) {
-      sendSafeCommand("stop", 0, "Xbox B - Emergency Stop");
+    // A Button - Safe Disarm
+    if (gamepad.buttons[BUTTON_MAP.A]?.pressed && !previousButtons[BUTTON_MAP.A]) {
+      if (isArmed) {
+        sendSafeCommand("safe_disarm", 0, "Xbox A - Safe Disarm");
+        setIsArmed(false);
+      }
+    }
+
+    // Y Button - Emergency Stop
+    if (gamepad.buttons[BUTTON_MAP.Y]?.pressed && !previousButtons[BUTTON_MAP.Y]) {
+      sendSafeCommand("stop", 0, "Xbox Y - Emergency Stop");
       setIsArmed(false);
     }
 
-    // X Button - Toggle Safe Mode
-    if (gamepad.buttons[BUTTON_MAP.X]?.pressed && !previousButtons[BUTTON_MAP.X]) {
-      setSafeMode(!safeMode);
+    // B Button - Reset throttle to 0%
+    if (gamepad.buttons[BUTTON_MAP.B]?.pressed && !previousButtons[BUTTON_MAP.B]) {
+      setCurrentThrottlePercentage(0);
+      sendSafeCommand("throttle_percentage", 0, "Xbox B - Reset Throttle 0%");
     }
 
-    // Y Button - Auto Hover at safe altitude
-    if (gamepad.buttons[BUTTON_MAP.Y]?.pressed && !previousButtons[BUTTON_MAP.Y]) {
-      sendSafeCommand("hover", 50, "Xbox Y - Auto Hover 50cm");
+    // Handle trigger-based throttle percentage control (R2 = +5%, L2 = -5%)
+    const triggerThreshold = 0.7;
+    
+    // R2 trigger - increase throttle by 5%
+    if (rightTrigger > triggerThreshold && previousTriggerStates.right <= triggerThreshold) {
+      const newPercentage = Math.min(100, currentThrottlePercentage + 5);
+      setCurrentThrottlePercentage(newPercentage);
+      sendSafeCommand("throttle_percentage", newPercentage, `R2 - Throttle: ${newPercentage}%`);
     }
+    
+    // L2 trigger - decrease throttle by 5%
+    if (leftTrigger > triggerThreshold && previousTriggerStates.left <= triggerThreshold) {
+      const newPercentage = Math.max(0, currentThrottlePercentage - 5);
+      setCurrentThrottlePercentage(newPercentage);
+      sendSafeCommand("throttle_percentage", newPercentage, `L2 - Throttle: ${newPercentage}%`);
+    }
+    
+    // Update previous trigger states
+    setPreviousTriggerStates({ left: leftTrigger, right: rightTrigger });
 
     // Store previous button states
     setPreviousButtons(currentButtons);
@@ -236,35 +252,30 @@ const XboxController = ({
     if (isArmed && shouldSendCommand) {
       let commandSent = false;
 
-      // Throttle control (Right stick Y-axis + triggers)
-      if (Math.abs(rightStickY) > 0 || rightTrigger > 0.05 || leftTrigger > 0.05) {
-        const baseThrottle = mapStickToThrottle(rightStickY);
-        const triggerAdjustment = (rightTrigger - leftTrigger) * 100;
-        const finalThrottle = Math.max(SAFE_THROTTLE_MIN, baseThrottle + triggerAdjustment);
-        sendSafeCommand("safe_hover", finalThrottle, `Throttle: ${finalThrottle}`);
-        commandSent = true;
-      }
-
-      // Movement controls (Left stick) - Send combined movement command
+      // Movement controls (D-Pad style using left stick)
       if (Math.abs(leftStickX) > 0 || Math.abs(leftStickY) > 0) {
         // Prioritize the larger input to avoid conflicting commands
         if (Math.abs(leftStickX) > Math.abs(leftStickY)) {
           const intensity = mapStickToMovement(leftStickX);
           const direction = leftStickX > 0 ? "right" : "left";
           sendSafeCommand(direction, intensity, `${direction} ${intensity}%`);
+          commandSent = true;
         } else {
           const intensity = mapStickToMovement(leftStickY);
           const direction = leftStickY > 0 ? "forward" : "backward";
           sendSafeCommand(direction, intensity, `${direction} ${intensity}%`);
+          commandSent = true;
         }
-        commandSent = true;
       }
 
-      // Yaw control (Right stick X-axis)
-      if (Math.abs(rightStickX) > 0) {
-        const intensity = mapStickToMovement(rightStickX);
-        const direction = rightStickX > 0 ? "yaw_right" : "yaw_left";
-        sendSafeCommand(direction, intensity, `Yaw ${direction} ${intensity}%`);
+      // Check shoulder buttons for yaw control (match iOS app)
+      if (gamepad.buttons[BUTTON_MAP.RB]?.pressed) {
+        sendSafeCommand("yaw_right", 45, "RB - Yaw Right 45%");
+        commandSent = true;
+      }
+      
+      if (gamepad.buttons[BUTTON_MAP.LB]?.pressed) {
+        sendSafeCommand("yaw_left", 45, "LB - Yaw Left 45%");
         commandSent = true;
       }
 
@@ -274,9 +285,10 @@ const XboxController = ({
         setPreviousControllerState(currentInputState);
       }
     }
-  }, [gamepadConnected, gamepadIndex, controllerEnabled, isArmed, safeMode, 
-      applyDeadzone, smoothInput, mapStickToThrottle, mapStickToMovement, sendSafeCommand, setIsArmed,
-      hasSignificantChange, previousControllerState, lastCommandTime]);
+  }, [gamepadConnected, gamepadIndex, controllerEnabled, isArmed, 
+      applyDeadzone, smoothInput, mapStickToMovement, sendSafeCommand, setIsArmed,
+      hasSignificantChange, previousControllerState, lastCommandTime, currentThrottlePercentage,
+      previousButtons, previousTriggerStates]);
 
   // Gamepad detection and connection
   useEffect(() => {

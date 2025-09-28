@@ -409,6 +409,35 @@ void executeRestart() {
 }
 
 /**
+ * @brief Sets throttle based on percentage input (0-100%)
+ * 0% = 1000 (RC_MIN), 100% = 2000 (RC_MAX)
+ * Includes safety limits when safeMode is enabled
+ */
+void executeThrottlePercentage(int percentage, bool safeMode) {
+    // Constrain percentage to valid range
+    percentage = constrain(percentage, 0, 100);
+    
+    // Convert percentage to RC value: 0% = 1000, 100% = 2000
+    uint16_t throttleValue = map(percentage, 0, 100, RC_MIN, RC_MAX);
+    
+    // Apply safety limits if in safe mode
+    if (safeMode) {
+        throttleValue = constrain(throttleValue, SAFE_THROTTLE_MIN, SAFE_THROTTLE_MAX);
+    }
+    
+    // Set the throttle channel
+    setRCChannel(2, throttleValue);
+    
+    // Keep other controls centered
+    setRCChannel(0, RC_CENTER); // Roll center
+    setRCChannel(1, RC_CENTER); // Pitch center
+    setRCChannel(3, RC_CENTER); // Yaw center
+    
+    Serial.printf("THROTTLE_PERCENTAGE: %d%% -> RC: %d (SafeMode: %s)\n", 
+                  percentage, throttleValue, safeMode ? "ON" : "OFF");
+}
+
+/**
  * @brief Parses and executes JSON commands from iPhone/WebApp
  * Expected format: {"command":"hover","value":50,"safeMode":true}
  * NEW: Enhanced to handle safe mode and additional commands
@@ -474,6 +503,8 @@ void parseAndExecuteCommand(String jsonCommand) {
         executeSafeDisarm(); // NEW: Safe disarm with motor speed maintenance
     } else if (command == "restart") {
         executeRestart(); // NEW: Restart ESP32 with safe landing
+    } else if (command == "throttle_percentage") {
+        executeThrottlePercentage(value, safeMode); // NEW: Direct throttle percentage control
     }
     
     // Send acknowledgment back to iPhone

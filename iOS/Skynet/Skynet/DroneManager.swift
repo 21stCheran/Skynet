@@ -21,7 +21,7 @@ class DroneManager: ObservableObject {
     @Published var rawIMUData = RawIMUData()
     
     // Command State
-    @Published var currentAltitudeOffset: Int = 0
+    @Published var currentThrottlePercentage: Int = 0
     @Published var isArmed = false
     
     private var udpManager = UDPManager()
@@ -100,22 +100,27 @@ class DroneManager: ObservableObject {
     
     func disarmDrone() {
         sendCommand(.disarm)
-        currentAltitudeOffset = 0
+        currentThrottlePercentage = 0
     }
     
     func safeDisarm() {
         sendCommand(.safeDisarm)
-        currentAltitudeOffset = 0
+        currentThrottlePercentage = 0
     }
     
     func emergencyStop() {
         sendCommand(.stop)
-        currentAltitudeOffset = 0
+        currentThrottlePercentage = 0
     }
     
-    func adjustAltitude(by offset: Int) {
-        currentAltitudeOffset += offset
-        sendCommand(.hover(value: currentAltitudeOffset))
+    func adjustThrottlePercentage(by offset: Int) {
+        currentThrottlePercentage = max(0, min(100, currentThrottlePercentage + offset))
+        sendCommand(.throttlePercentage(value: currentThrottlePercentage))
+    }
+    
+    func setThrottlePercentage(_ percentage: Int) {
+        currentThrottlePercentage = max(0, min(100, percentage))
+        sendCommand(.throttlePercentage(value: currentThrottlePercentage))
     }
     
     func moveForward(intensity: Int) {
@@ -156,7 +161,7 @@ enum DroneCommand {
     case disarm
     case safeDisarm
     case stop
-    case hover(value: Int)
+    case throttlePercentage(value: Int)
     case safeHover(value: Int)
     case forward(value: Int)
     case backward(value: Int)
@@ -176,8 +181,8 @@ enum DroneCommand {
             return "{\"command\":\"safe_disarm\",\"value\":0,\"safeMode\":true}"
         case .stop:
             return "{\"command\":\"stop\",\"value\":0,\"safeMode\":true}"
-        case .hover(let value):
-            return "{\"command\":\"hover\",\"value\":\(value),\"safeMode\":true}"
+        case .throttlePercentage(let value):
+            return "{\"command\":\"throttle_percentage\",\"value\":\(value),\"safeMode\":true}"
         case .safeHover(let value):
             return "{\"command\":\"safe_hover\",\"value\":\(value),\"safeMode\":true}"
         case .forward(let value):
