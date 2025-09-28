@@ -130,7 +130,7 @@ const FlightControlPanel = ({
                 Safe Mode {safeMode ? "ON" : "OFF"}
               </Typography>
               <Typography variant="caption" color="text.secondary">
-                {safeMode 
+                {safeMode
                   ? "Motors maintain minimum safe speed when armed"
                   : "CAUTION: Full power control available"}
               </Typography>
@@ -268,7 +268,10 @@ const FlightControlPanel = ({
             color="success"
             size="small"
             onClick={() => {
-              const newPercentage = Math.min(100, currentThrottlePercentage + 20);
+              const newPercentage = Math.min(
+                100,
+                currentThrottlePercentage + 20
+              );
               setCurrentThrottlePercentage(newPercentage);
               sendCommand(
                 () => FlightCommands.throttlePercentage(newPercentage),
@@ -287,7 +290,10 @@ const FlightControlPanel = ({
             color="success"
             size="small"
             onClick={() => {
-              const newPercentage = Math.min(100, currentThrottlePercentage + 5);
+              const newPercentage = Math.min(
+                100,
+                currentThrottlePercentage + 5
+              );
               setCurrentThrottlePercentage(newPercentage);
               sendCommand(
                 () => FlightCommands.throttlePercentage(newPercentage),
@@ -514,10 +520,7 @@ const FlightControlPanel = ({
             variant="contained"
             color="secondary"
             onClick={() =>
-              sendCommand(
-                () => FlightCommands.yawLeft(45),
-                "Yaw Left 45%"
-              )
+              sendCommand(() => FlightCommands.yawLeft(45), "Yaw Left 45%")
             }
             disabled={!isConnected}
             sx={{ minWidth: 120 }}
@@ -531,10 +534,7 @@ const FlightControlPanel = ({
             variant="contained"
             color="secondary"
             onClick={() =>
-              sendCommand(
-                () => FlightCommands.yawRight(45),
-                "Yaw Right 45%"
-              )
+              sendCommand(() => FlightCommands.yawRight(45), "Yaw Right 45%")
             }
             disabled={!isConnected}
             sx={{ minWidth: 120 }}

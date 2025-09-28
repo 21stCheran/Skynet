@@ -65,7 +65,10 @@ const XboxController = ({
     triggers: { left: 0, right: 0 },
   });
   const [currentThrottlePercentage, setCurrentThrottlePercentage] = useState(0);
-  const [previousTriggerStates, setPreviousTriggerStates] = useState({ left: 0, right: 0 });
+  const [previousTriggerStates, setPreviousTriggerStates] = useState({
+    left: 0,
+    right: 0,
+  });
   const [lastCommandTime, setLastCommandTime] = useState(0);
   const [performanceStats, setPerformanceStats] = useState({
     updateRate: 0,
@@ -87,60 +90,74 @@ const XboxController = ({
   // Apply deadzone with smooth curve for better control feel
   const applyDeadzone = useCallback((value) => {
     if (Math.abs(value) < DEADZONE) return 0;
-    
+
     // Apply smooth curve: remove deadzone and rescale to full range
     const sign = Math.sign(value);
     const magnitude = Math.abs(value);
     const adjustedMagnitude = (magnitude - DEADZONE) / (1 - DEADZONE);
-    
+
     // Apply slight exponential curve for better control precision
     const curvedValue = Math.pow(adjustedMagnitude, 1.2);
-    
+
     return sign * curvedValue;
   }, []);
 
   // Input smoothing filter to reduce jitter
-  const smoothInput = useCallback((newValue, oldValue, smoothingFactor = 0.3) => {
-    if (Math.abs(newValue) < 0.01) return newValue; // Don't smooth zero values
-    return oldValue * (1 - smoothingFactor) + newValue * smoothingFactor;
-  }, []);
+  const smoothInput = useCallback(
+    (newValue, oldValue, smoothingFactor = 0.3) => {
+      if (Math.abs(newValue) < 0.01) return newValue; // Don't smooth zero values
+      return oldValue * (1 - smoothingFactor) + newValue * smoothingFactor;
+    },
+    []
+  );
 
   // Check if input has changed significantly to avoid spam
-  const hasSignificantChange = useCallback((current, previous, threshold = 0.015) => {
-    return Math.abs(current.leftStick.x - previous.leftStick.x) > threshold ||
-           Math.abs(current.leftStick.y - previous.leftStick.y) > threshold ||
-           Math.abs(current.rightStick.x - previous.rightStick.x) > threshold ||
-           Math.abs(current.rightStick.y - previous.rightStick.y) > threshold ||
-           Math.abs(current.triggers.left - previous.triggers.left) > threshold ||
-           Math.abs(current.triggers.right - previous.triggers.right) > threshold;
-  }, []);
+  const hasSignificantChange = useCallback(
+    (current, previous, threshold = 0.015) => {
+      return (
+        Math.abs(current.leftStick.x - previous.leftStick.x) > threshold ||
+        Math.abs(current.leftStick.y - previous.leftStick.y) > threshold ||
+        Math.abs(current.rightStick.x - previous.rightStick.x) > threshold ||
+        Math.abs(current.rightStick.y - previous.rightStick.y) > threshold ||
+        Math.abs(current.triggers.left - previous.triggers.left) > threshold ||
+        Math.abs(current.triggers.right - previous.triggers.right) > threshold
+      );
+    },
+    []
+  );
 
   // Convert stick values to movement intensity (removed throttle mapping since we use percentage now)
 
-  const mapStickToMovement = useCallback((stickValue) => {
-    const maxIntensity = safeMode ? SAFE_MOVEMENT_MAX : 80;
-    return Math.round(Math.abs(stickValue) * maxIntensity);
-  }, [safeMode]);
+  const mapStickToMovement = useCallback(
+    (stickValue) => {
+      const maxIntensity = safeMode ? SAFE_MOVEMENT_MAX : 80;
+      return Math.round(Math.abs(stickValue) * maxIntensity);
+    },
+    [safeMode]
+  );
 
   // Send flight command with safety checks
-  const sendSafeCommand = useCallback((command, value, description) => {
-    if (!isConnected || !controllerEnabled) return;
+  const sendSafeCommand = useCallback(
+    (command, value, description) => {
+      if (!isConnected || !controllerEnabled) return;
 
-    // Apply safe limits
-    let safeValue = value;
-    if (command === "hover") {
-      // Ensure hover throttle includes minimum motor speed
-      safeValue = Math.max(value, SAFE_THROTTLE_MIN);
-    } else if (["forward", "backward", "left", "right"].includes(command)) {
-      // Limit movement intensity in safe mode
-      const maxIntensity = safeMode ? SAFE_MOVEMENT_MAX : 80;
-      safeValue = Math.min(value, maxIntensity);
-    }
+      // Apply safe limits
+      let safeValue = value;
+      if (command === "hover") {
+        // Ensure hover throttle includes minimum motor speed
+        safeValue = Math.max(value, SAFE_THROTTLE_MIN);
+      } else if (["forward", "backward", "left", "right"].includes(command)) {
+        // Limit movement intensity in safe mode
+        const maxIntensity = safeMode ? SAFE_MOVEMENT_MAX : 80;
+        safeValue = Math.min(value, maxIntensity);
+      }
 
-    const commandJson = JSON.stringify({ command, value: safeValue });
-    onSendCommand(commandJson);
-    setLastCommand(description);
-  }, [isConnected, controllerEnabled, safeMode, onSendCommand]);
+      const commandJson = JSON.stringify({ command, value: safeValue });
+      onSendCommand(commandJson);
+      setLastCommand(description);
+    },
+    [isConnected, controllerEnabled, safeMode, onSendCommand]
+  );
 
   // Process gamepad input
   const processGamepadInput = useCallback(() => {
@@ -156,16 +173,36 @@ const XboxController = ({
     const rawRightStickY = applyDeadzone(-gamepad.axes[3]); // Throttle (inverted)
 
     // Apply smoothing to reduce jitter (except for throttle which should be immediate)
-    const leftStickX = smoothInput(rawLeftStickX, previousControllerState.leftStick.x, 0.4);
-    const leftStickY = smoothInput(rawLeftStickY, previousControllerState.leftStick.y, 0.4);
-    const rightStickX = smoothInput(rawRightStickX, previousControllerState.rightStick.x, 0.4);
+    const leftStickX = smoothInput(
+      rawLeftStickX,
+      previousControllerState.leftStick.x,
+      0.4
+    );
+    const leftStickY = smoothInput(
+      rawLeftStickY,
+      previousControllerState.leftStick.y,
+      0.4
+    );
+    const rightStickX = smoothInput(
+      rawRightStickX,
+      previousControllerState.rightStick.x,
+      0.4
+    );
     const rightStickY = rawRightStickY; // Keep throttle immediate for safety
 
     // Get trigger values (smooth for fine control)
     const rawLeftTrigger = gamepad.buttons[6]?.value || 0;
     const rawRightTrigger = gamepad.buttons[7]?.value || 0;
-    const leftTrigger = smoothInput(rawLeftTrigger, previousControllerState.triggers.left, 0.3);
-    const rightTrigger = smoothInput(rawRightTrigger, previousControllerState.triggers.right, 0.3);
+    const leftTrigger = smoothInput(
+      rawLeftTrigger,
+      previousControllerState.triggers.left,
+      0.3
+    );
+    const rightTrigger = smoothInput(
+      rawRightTrigger,
+      previousControllerState.triggers.right,
+      0.3
+    );
 
     // Current input state
     const currentInputState = {
@@ -186,19 +223,26 @@ const XboxController = ({
     // Check if we should send commands (throttle to avoid network spam)
     const now = Date.now();
     const timeSinceLastCommand = now - lastCommandTime;
-    const hasInputChanged = hasSignificantChange(currentInputState, previousControllerState);
-    
+    const hasInputChanged = hasSignificantChange(
+      currentInputState,
+      previousControllerState
+    );
+
     // Only send commands if input changed significantly OR enough time has passed
-    const shouldSendCommand = hasInputChanged || timeSinceLastCommand > COMMAND_THROTTLE_RATE;
+    const shouldSendCommand =
+      hasInputChanged || timeSinceLastCommand > COMMAND_THROTTLE_RATE;
 
     // Process button presses (only on press, not hold)
     const currentButtons = gamepad.buttons.reduce((acc, button, index) => {
       acc[index] = button.pressed;
       return acc;
     }, {});
-    
+
     // X Button - Arm Drone
-    if (gamepad.buttons[BUTTON_MAP.X]?.pressed && !previousButtons[BUTTON_MAP.X]) {
+    if (
+      gamepad.buttons[BUTTON_MAP.X]?.pressed &&
+      !previousButtons[BUTTON_MAP.X]
+    ) {
       if (!isArmed) {
         sendSafeCommand("arm", 1, "Xbox X - Arm");
         setIsArmed(true);
@@ -206,7 +250,10 @@ const XboxController = ({
     }
 
     // A Button - Safe Disarm
-    if (gamepad.buttons[BUTTON_MAP.A]?.pressed && !previousButtons[BUTTON_MAP.A]) {
+    if (
+      gamepad.buttons[BUTTON_MAP.A]?.pressed &&
+      !previousButtons[BUTTON_MAP.A]
+    ) {
       if (isArmed) {
         sendSafeCommand("safe_disarm", 0, "Xbox A - Safe Disarm");
         setIsArmed(false);
@@ -214,34 +261,54 @@ const XboxController = ({
     }
 
     // Y Button - Emergency Stop
-    if (gamepad.buttons[BUTTON_MAP.Y]?.pressed && !previousButtons[BUTTON_MAP.Y]) {
+    if (
+      gamepad.buttons[BUTTON_MAP.Y]?.pressed &&
+      !previousButtons[BUTTON_MAP.Y]
+    ) {
       sendSafeCommand("stop", 0, "Xbox Y - Emergency Stop");
       setIsArmed(false);
     }
 
     // B Button - Reset throttle to 0%
-    if (gamepad.buttons[BUTTON_MAP.B]?.pressed && !previousButtons[BUTTON_MAP.B]) {
+    if (
+      gamepad.buttons[BUTTON_MAP.B]?.pressed &&
+      !previousButtons[BUTTON_MAP.B]
+    ) {
       setCurrentThrottlePercentage(0);
       sendSafeCommand("throttle_percentage", 0, "Xbox B - Reset Throttle 0%");
     }
 
     // Handle trigger-based throttle percentage control (R2 = +5%, L2 = -5%)
     const triggerThreshold = 0.7;
-    
+
     // R2 trigger - increase throttle by 5%
-    if (rightTrigger > triggerThreshold && previousTriggerStates.right <= triggerThreshold) {
+    if (
+      rightTrigger > triggerThreshold &&
+      previousTriggerStates.right <= triggerThreshold
+    ) {
       const newPercentage = Math.min(100, currentThrottlePercentage + 5);
       setCurrentThrottlePercentage(newPercentage);
-      sendSafeCommand("throttle_percentage", newPercentage, `R2 - Throttle: ${newPercentage}%`);
+      sendSafeCommand(
+        "throttle_percentage",
+        newPercentage,
+        `R2 - Throttle: ${newPercentage}%`
+      );
     }
-    
+
     // L2 trigger - decrease throttle by 5%
-    if (leftTrigger > triggerThreshold && previousTriggerStates.left <= triggerThreshold) {
+    if (
+      leftTrigger > triggerThreshold &&
+      previousTriggerStates.left <= triggerThreshold
+    ) {
       const newPercentage = Math.max(0, currentThrottlePercentage - 5);
       setCurrentThrottlePercentage(newPercentage);
-      sendSafeCommand("throttle_percentage", newPercentage, `L2 - Throttle: ${newPercentage}%`);
+      sendSafeCommand(
+        "throttle_percentage",
+        newPercentage,
+        `L2 - Throttle: ${newPercentage}%`
+      );
     }
-    
+
     // Update previous trigger states
     setPreviousTriggerStates({ left: leftTrigger, right: rightTrigger });
 
@@ -273,7 +340,7 @@ const XboxController = ({
         sendSafeCommand("yaw_right", 45, "RB - Yaw Right 45%");
         commandSent = true;
       }
-      
+
       if (gamepad.buttons[BUTTON_MAP.LB]?.pressed) {
         sendSafeCommand("yaw_left", 45, "LB - Yaw Left 45%");
         commandSent = true;
@@ -285,10 +352,23 @@ const XboxController = ({
         setPreviousControllerState(currentInputState);
       }
     }
-  }, [gamepadConnected, gamepadIndex, controllerEnabled, isArmed, 
-      applyDeadzone, smoothInput, mapStickToMovement, sendSafeCommand, setIsArmed,
-      hasSignificantChange, previousControllerState, lastCommandTime, currentThrottlePercentage,
-      previousButtons, previousTriggerStates]);
+  }, [
+    gamepadConnected,
+    gamepadIndex,
+    controllerEnabled,
+    isArmed,
+    applyDeadzone,
+    smoothInput,
+    mapStickToMovement,
+    sendSafeCommand,
+    setIsArmed,
+    hasSignificantChange,
+    previousControllerState,
+    lastCommandTime,
+    currentThrottlePercentage,
+    previousButtons,
+    previousTriggerStates,
+  ]);
 
   // Gamepad detection and connection
   useEffect(() => {
@@ -329,7 +409,10 @@ const XboxController = ({
 
     return () => {
       window.removeEventListener("gamepadconnected", handleGamepadConnected);
-      window.removeEventListener("gamepaddisconnected", handleGamepadDisconnected);
+      window.removeEventListener(
+        "gamepaddisconnected",
+        handleGamepadDisconnected
+      );
     };
   }, []);
 
@@ -344,13 +427,13 @@ const XboxController = ({
     const perfInterval = setInterval(() => {
       const now = Date.now();
       const deltaTime = (now - lastUpdateTime) / 1000;
-      
+
       setPerformanceStats({
         updateRate: Math.round(updateCount / deltaTime),
         commandRate: Math.round(commandCount / deltaTime),
         inputLag: UPDATE_RATE,
       });
-      
+
       updateCount = 0;
       commandCount = 0;
       lastUpdateTime = now;
@@ -430,7 +513,7 @@ const XboxController = ({
                   Safe Mode {safeMode ? "ON" : "OFF"}
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
-                  {safeMode 
+                  {safeMode
                     ? `Limits: Throttle ${SAFE_THROTTLE_MIN}-${SAFE_THROTTLE_MAX}, Movement ${SAFE_MOVEMENT_MAX}%`
                     : "CAUTION: Full power available"}
                 </Typography>
@@ -493,47 +576,47 @@ const XboxController = ({
               <Grid item xs={6}>
                 <Typography variant="body2">Left Stick:</Typography>
                 <Typography variant="caption">
-                  X: {controllerState.leftStick.x.toFixed(2)}, 
-                  Y: {controllerState.leftStick.y.toFixed(2)}
+                  X: {controllerState.leftStick.x.toFixed(2)}, Y:{" "}
+                  {controllerState.leftStick.y.toFixed(2)}
                 </Typography>
-                <LinearProgress 
-                  variant="determinate" 
-                  value={(controllerState.leftStick.x + 1) * 50} 
+                <LinearProgress
+                  variant="determinate"
+                  value={(controllerState.leftStick.x + 1) * 50}
                   sx={{ mb: 1 }}
                 />
-                <LinearProgress 
-                  variant="determinate" 
-                  value={(controllerState.leftStick.y + 1) * 50} 
+                <LinearProgress
+                  variant="determinate"
+                  value={(controllerState.leftStick.y + 1) * 50}
                 />
               </Grid>
               <Grid item xs={6}>
                 <Typography variant="body2">Right Stick:</Typography>
                 <Typography variant="caption">
-                  X: {controllerState.rightStick.x.toFixed(2)}, 
-                  Y: {controllerState.rightStick.y.toFixed(2)}
+                  X: {controllerState.rightStick.x.toFixed(2)}, Y:{" "}
+                  {controllerState.rightStick.y.toFixed(2)}
                 </Typography>
-                <LinearProgress 
-                  variant="determinate" 
-                  value={(controllerState.rightStick.x + 1) * 50} 
+                <LinearProgress
+                  variant="determinate"
+                  value={(controllerState.rightStick.x + 1) * 50}
                   sx={{ mb: 1 }}
                 />
-                <LinearProgress 
-                  variant="determinate" 
-                  value={(controllerState.rightStick.y + 1) * 50} 
+                <LinearProgress
+                  variant="determinate"
+                  value={(controllerState.rightStick.y + 1) * 50}
                 />
               </Grid>
               <Grid item xs={6}>
                 <Typography variant="body2">Left Trigger:</Typography>
-                <LinearProgress 
-                  variant="determinate" 
-                  value={controllerState.triggers.left * 100} 
+                <LinearProgress
+                  variant="determinate"
+                  value={controllerState.triggers.left * 100}
                 />
               </Grid>
               <Grid item xs={6}>
                 <Typography variant="body2">Right Trigger:</Typography>
-                <LinearProgress 
-                  variant="determinate" 
-                  value={controllerState.triggers.right * 100} 
+                <LinearProgress
+                  variant="determinate"
+                  value={controllerState.triggers.right * 100}
                 />
               </Grid>
             </Grid>

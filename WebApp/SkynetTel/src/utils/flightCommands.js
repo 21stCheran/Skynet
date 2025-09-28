@@ -66,31 +66,38 @@ export const MOVEMENT_INTENSITIES = {
  */
 export const createFlightCommand = (command, value = 0, safeMode = true) => {
   let safeValue = value;
-  
+
   // Apply safety limits based on command type
   if (safeMode) {
     switch (command) {
       case FLIGHT_COMMANDS.HOVER:
       case FLIGHT_COMMANDS.SAFE_HOVER:
         // Ensure hover throttle is within safe range
-        if (typeof value === 'number' && value >= 1000 && value <= 2000) {
+        if (typeof value === "number" && value >= 1000 && value <= 2000) {
           // Value is throttle PWM value
-          safeValue = Math.max(SAFE_FLIGHT_PARAMS.THROTTLE_SAFE_MIN, 
-                              Math.min(value, SAFE_FLIGHT_PARAMS.THROTTLE_SAFE_MAX));
+          safeValue = Math.max(
+            SAFE_FLIGHT_PARAMS.THROTTLE_SAFE_MIN,
+            Math.min(value, SAFE_FLIGHT_PARAMS.THROTTLE_SAFE_MAX)
+          );
         } else {
           // Value is altitude in cm, convert to safe throttle
-          const altitudeThrottle = SAFE_FLIGHT_PARAMS.THROTTLE_HOVER_BASE + (value * 2);
-          safeValue = Math.max(SAFE_FLIGHT_PARAMS.THROTTLE_SAFE_MIN, 
-                              Math.min(altitudeThrottle, SAFE_FLIGHT_PARAMS.THROTTLE_SAFE_MAX));
+          const altitudeThrottle =
+            SAFE_FLIGHT_PARAMS.THROTTLE_HOVER_BASE + value * 2;
+          safeValue = Math.max(
+            SAFE_FLIGHT_PARAMS.THROTTLE_SAFE_MIN,
+            Math.min(altitudeThrottle, SAFE_FLIGHT_PARAMS.THROTTLE_SAFE_MAX)
+          );
         }
         break;
 
       case FLIGHT_COMMANDS.THROTTLE_PERCENTAGE:
         // Ensure throttle percentage is within safe range (20%-80% in safe mode)
-        safeValue = Math.max(SAFE_FLIGHT_PARAMS.THROTTLE_PERCENTAGE_SAFE_MIN,
-                           Math.min(value, SAFE_FLIGHT_PARAMS.THROTTLE_PERCENTAGE_SAFE_MAX));
+        safeValue = Math.max(
+          SAFE_FLIGHT_PARAMS.THROTTLE_PERCENTAGE_SAFE_MIN,
+          Math.min(value, SAFE_FLIGHT_PARAMS.THROTTLE_PERCENTAGE_SAFE_MAX)
+        );
         break;
-        
+
       case FLIGHT_COMMANDS.FORWARD:
       case FLIGHT_COMMANDS.BACKWARD:
       case FLIGHT_COMMANDS.LEFT:
@@ -100,19 +107,19 @@ export const createFlightCommand = (command, value = 0, safeMode = true) => {
         // Limit movement intensity in safe mode
         safeValue = Math.min(value, SAFE_FLIGHT_PARAMS.MOVEMENT_MAX_SAFE);
         break;
-        
+
       case FLIGHT_COMMANDS.EMERGENCY_STOP:
         // Emergency stop always goes to minimum for immediate safety
         safeValue = 0;
         break;
-        
+
       case FLIGHT_COMMANDS.SAFE_DISARM:
         // Safe disarm maintains minimum motor speed briefly before full stop
         safeValue = SAFE_FLIGHT_PARAMS.THROTTLE_SAFE_MIN;
         break;
     }
   }
-  
+
   const commandObj = {
     command: command,
     value: safeValue,
@@ -127,52 +134,107 @@ export const createFlightCommand = (command, value = 0, safeMode = true) => {
  */
 export const FlightCommands = {
   // Basic control
-  arm: (safeMode = true) => createFlightCommand(FLIGHT_COMMANDS.ARM, 1, safeMode),
-  disarm: (safeMode = true) => createFlightCommand(FLIGHT_COMMANDS.DISARM, 0, safeMode),
-  safeDisarm: () => createFlightCommand(FLIGHT_COMMANDS.SAFE_DISARM, SAFE_FLIGHT_PARAMS.THROTTLE_SAFE_MIN, true),
-  emergencyStop: () => createFlightCommand(FLIGHT_COMMANDS.EMERGENCY_STOP, 0, false), // Never safe mode for emergency
+  arm: (safeMode = true) =>
+    createFlightCommand(FLIGHT_COMMANDS.ARM, 1, safeMode),
+  disarm: (safeMode = true) =>
+    createFlightCommand(FLIGHT_COMMANDS.DISARM, 0, safeMode),
+  safeDisarm: () =>
+    createFlightCommand(
+      FLIGHT_COMMANDS.SAFE_DISARM,
+      SAFE_FLIGHT_PARAMS.THROTTLE_SAFE_MIN,
+      true
+    ),
+  emergencyStop: () =>
+    createFlightCommand(FLIGHT_COMMANDS.EMERGENCY_STOP, 0, false), // Never safe mode for emergency
 
   // Hover commands
-  hover: (altitudeCm, safeMode = true) => createFlightCommand(FLIGHT_COMMANDS.HOVER, altitudeCm, safeMode),
-  safeHover: (altitudeCm) => createFlightCommand(FLIGHT_COMMANDS.SAFE_HOVER, altitudeCm, true),
-  hoverThrottle: (throttleValue, safeMode = true) => createFlightCommand(FLIGHT_COMMANDS.HOVER, throttleValue, safeMode),
-  
+  hover: (altitudeCm, safeMode = true) =>
+    createFlightCommand(FLIGHT_COMMANDS.HOVER, altitudeCm, safeMode),
+  safeHover: (altitudeCm) =>
+    createFlightCommand(FLIGHT_COMMANDS.SAFE_HOVER, altitudeCm, true),
+  hoverThrottle: (throttleValue, safeMode = true) =>
+    createFlightCommand(FLIGHT_COMMANDS.HOVER, throttleValue, safeMode),
+
   // Preset hover commands
-  hoverSafeLow: () => createFlightCommand(FLIGHT_COMMANDS.SAFE_HOVER, HOVER_PRESETS.SAFE_LOW.throttle, true),
-  hoverLow: (safeMode = true) => createFlightCommand(FLIGHT_COMMANDS.HOVER, HOVER_PRESETS.LOW.throttle, safeMode),
-  hoverMedium: (safeMode = true) => createFlightCommand(FLIGHT_COMMANDS.HOVER, HOVER_PRESETS.MEDIUM.throttle, safeMode),
-  hoverHigh: (safeMode = true) => createFlightCommand(FLIGHT_COMMANDS.HOVER, HOVER_PRESETS.HIGH.throttle, safeMode),
+  hoverSafeLow: () =>
+    createFlightCommand(
+      FLIGHT_COMMANDS.SAFE_HOVER,
+      HOVER_PRESETS.SAFE_LOW.throttle,
+      true
+    ),
+  hoverLow: (safeMode = true) =>
+    createFlightCommand(
+      FLIGHT_COMMANDS.HOVER,
+      HOVER_PRESETS.LOW.throttle,
+      safeMode
+    ),
+  hoverMedium: (safeMode = true) =>
+    createFlightCommand(
+      FLIGHT_COMMANDS.HOVER,
+      HOVER_PRESETS.MEDIUM.throttle,
+      safeMode
+    ),
+  hoverHigh: (safeMode = true) =>
+    createFlightCommand(
+      FLIGHT_COMMANDS.HOVER,
+      HOVER_PRESETS.HIGH.throttle,
+      safeMode
+    ),
 
   // Movement commands
-  forward: (intensity, safeMode = true) => createFlightCommand(FLIGHT_COMMANDS.FORWARD, intensity, safeMode),
-  backward: (intensity, safeMode = true) => createFlightCommand(FLIGHT_COMMANDS.BACKWARD, intensity, safeMode),
-  left: (intensity, safeMode = true) => createFlightCommand(FLIGHT_COMMANDS.LEFT, intensity, safeMode),
-  right: (intensity, safeMode = true) => createFlightCommand(FLIGHT_COMMANDS.RIGHT, intensity, safeMode),
-  
+  forward: (intensity, safeMode = true) =>
+    createFlightCommand(FLIGHT_COMMANDS.FORWARD, intensity, safeMode),
+  backward: (intensity, safeMode = true) =>
+    createFlightCommand(FLIGHT_COMMANDS.BACKWARD, intensity, safeMode),
+  left: (intensity, safeMode = true) =>
+    createFlightCommand(FLIGHT_COMMANDS.LEFT, intensity, safeMode),
+  right: (intensity, safeMode = true) =>
+    createFlightCommand(FLIGHT_COMMANDS.RIGHT, intensity, safeMode),
+
   // Yaw commands (new)
-  yawLeft: (intensity, safeMode = true) => createFlightCommand(FLIGHT_COMMANDS.YAW_LEFT, intensity, safeMode),
-  yawRight: (intensity, safeMode = true) => createFlightCommand(FLIGHT_COMMANDS.YAW_RIGHT, intensity, safeMode),
+  yawLeft: (intensity, safeMode = true) =>
+    createFlightCommand(FLIGHT_COMMANDS.YAW_LEFT, intensity, safeMode),
+  yawRight: (intensity, safeMode = true) =>
+    createFlightCommand(FLIGHT_COMMANDS.YAW_RIGHT, intensity, safeMode),
 
   // Throttle percentage commands (new)
-  throttlePercentage: (percentage, safeMode = true) => createFlightCommand(FLIGHT_COMMANDS.THROTTLE_PERCENTAGE, percentage, safeMode),
+  throttlePercentage: (percentage, safeMode = true) =>
+    createFlightCommand(
+      FLIGHT_COMMANDS.THROTTLE_PERCENTAGE,
+      percentage,
+      safeMode
+    ),
 
   // Xbox controller specific commands
   xbox: {
     throttle: (stickValue, safeMode = true) => {
       // Convert stick value (-1 to 1) to throttle (1200-1800 in safe mode, 1000-2000 in unsafe)
-      const range = safeMode ? 
-        SAFE_FLIGHT_PARAMS.THROTTLE_SAFE_MAX - SAFE_FLIGHT_PARAMS.THROTTLE_SAFE_MIN :
-        SAFE_FLIGHT_PARAMS.THROTTLE_MAX - SAFE_FLIGHT_PARAMS.THROTTLE_MIN;
-      const baseThrottle = safeMode ? SAFE_FLIGHT_PARAMS.THROTTLE_SAFE_MIN : SAFE_FLIGHT_PARAMS.THROTTLE_MIN;
+      const range = safeMode
+        ? SAFE_FLIGHT_PARAMS.THROTTLE_SAFE_MAX -
+          SAFE_FLIGHT_PARAMS.THROTTLE_SAFE_MIN
+        : SAFE_FLIGHT_PARAMS.THROTTLE_MAX - SAFE_FLIGHT_PARAMS.THROTTLE_MIN;
+      const baseThrottle = safeMode
+        ? SAFE_FLIGHT_PARAMS.THROTTLE_SAFE_MIN
+        : SAFE_FLIGHT_PARAMS.THROTTLE_MIN;
       const throttle = baseThrottle + ((stickValue + 1) / 2) * range;
-      return createFlightCommand(FLIGHT_COMMANDS.HOVER, Math.round(throttle), safeMode);
+      return createFlightCommand(
+        FLIGHT_COMMANDS.HOVER,
+        Math.round(throttle),
+        safeMode
+      );
     },
-    
+
     movement: (direction, stickValue, safeMode = true) => {
-      const maxIntensity = safeMode ? SAFE_FLIGHT_PARAMS.MOVEMENT_MAX_SAFE : SAFE_FLIGHT_PARAMS.MOVEMENT_MAX_UNSAFE;
+      const maxIntensity = safeMode
+        ? SAFE_FLIGHT_PARAMS.MOVEMENT_MAX_SAFE
+        : SAFE_FLIGHT_PARAMS.MOVEMENT_MAX_UNSAFE;
       const intensity = Math.abs(stickValue) * maxIntensity;
-      return createFlightCommand(FLIGHT_COMMANDS[direction.toUpperCase()], Math.round(intensity), safeMode);
-    }
+      return createFlightCommand(
+        FLIGHT_COMMANDS[direction.toUpperCase()],
+        Math.round(intensity),
+        safeMode
+      );
+    },
   },
 
   // Legacy test command (string, not JSON)
@@ -245,13 +307,15 @@ export const getCommandDescription = (command, value) => {
     case FLIGHT_COMMANDS.HOVER:
       return `Sets throttle to ~${1450 + value * 2} for ${value}cm hover`;
     case FLIGHT_COMMANDS.THROTTLE_PERCENTAGE: {
-      const rcValue = Math.round(1000 + (value * 10)); // 0% = 1000, 100% = 2000
+      const rcValue = Math.round(1000 + value * 10); // 0% = 1000, 100% = 2000
       return `Sets throttle to ${rcValue} (${value}% power)`;
     }
     case FLIGHT_COMMANDS.FORWARD:
       return `Sets pitch to ${1500 + Math.floor(value * 3)} (forward movement)`;
     case FLIGHT_COMMANDS.BACKWARD:
-      return `Sets pitch to ${1500 - Math.floor(value * 3)} (backward movement)`;
+      return `Sets pitch to ${
+        1500 - Math.floor(value * 3)
+      } (backward movement)`;
     case FLIGHT_COMMANDS.LEFT:
       return `Sets roll to ${1500 - Math.floor(value * 3)} (left movement)`;
     case FLIGHT_COMMANDS.RIGHT:
