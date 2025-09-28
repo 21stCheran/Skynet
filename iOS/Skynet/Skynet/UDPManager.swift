@@ -17,6 +17,7 @@ class UDPManager: ObservableObject {
     @Published var connectionStatus = "Disconnected"
     
     var onMessageReceived: ((String) -> Void)?
+    var onDataReceived: ((Data) -> Void)?
     
     func connectToUDP(host: String, port: UInt16) {
         // Disconnect any existing connection
@@ -115,6 +116,12 @@ class UDPManager: ObservableObject {
             if isComplete {
                 print("Receive is complete")
                 if let data = data, !data.isEmpty {
+                    // Handle both raw data and string messages
+                    DispatchQueue.main.async {
+                        self.onDataReceived?(data)
+                    }
+                    
+                    // Also try to decode as string for legacy support
                     let backToString = String(decoding: data, as: UTF8.self)
                     print("Received message: \(backToString)")
                     DispatchQueue.main.async {

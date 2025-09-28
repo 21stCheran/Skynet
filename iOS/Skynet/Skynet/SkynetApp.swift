@@ -10,7 +10,7 @@ import SwiftUI
 struct SkynetApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            MainTabView()
         }
     }
 }
