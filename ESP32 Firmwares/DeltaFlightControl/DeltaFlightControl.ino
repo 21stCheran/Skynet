@@ -444,17 +444,17 @@ void executeThrottlePercentage(int percentage, bool safeMode) {
  */
 void parseAndExecuteCommand(String jsonCommand) {
     Serial.printf("CMD_RECEIVED: %s\n", jsonCommand.c_str());
-    
+
     // Simple JSON parsing (you could use ArduinoJson library for more robust parsing)
     int commandStart = jsonCommand.indexOf("\"command\":\"") + 11;
     int commandEnd = jsonCommand.indexOf("\"", commandStart);
     String command = jsonCommand.substring(commandStart, commandEnd);
-    
+
     int valueStart = jsonCommand.indexOf("\"value\":") + 8;
     int valueEnd = jsonCommand.indexOf("}", valueStart);
     if (valueEnd == -1) valueEnd = jsonCommand.indexOf(",", valueStart);
     int value = jsonCommand.substring(valueStart, valueEnd).toInt();
-    
+
     // Parse safe mode flag (default to true for safety)
     bool safeMode = true;
     int safeModeStart = jsonCommand.indexOf("\"safeMode\":");
@@ -466,22 +466,23 @@ void parseAndExecuteCommand(String jsonCommand) {
         }
         safeMode = (safeModeStr.indexOf("true") != -1);
     }
-    
-    // Update current command
+
+    // Update current command state
     currentCommand.type = command;
     currentCommand.value = value;
     currentCommand.timestamp = millis();
-    currentCommand.active = true;
+    currentCommand.active = true; // Default to true for movement commands
     currentCommand.safeMode = safeMode;
     last_command_time = millis();
-    
+
     // Execute the command with safe mode consideration
     if (command == "hover") {
         executeHoverCommand(value); // value = relative altitude change in cm
     } else if (command == "safe_hover") {
-        executeSafeHover(value, safeMode); // NEW: Direct throttle control with safety
+        executeSafeHover(value, safeMode);
+        currentCommand.active = false; // <<< ADD THIS LINE (Set-and-forget command)
     } else if (command == "forward") {
-        executeSafeMovement("forward", value, safeMode); // Enhanced with safety
+        executeSafeMovement("forward", value, safeMode); // Movement command, should time out
     } else if (command == "backward") {
         executeSafeMovement("backward", value, safeMode);
     } else if (command == "left") {
@@ -489,24 +490,29 @@ void parseAndExecuteCommand(String jsonCommand) {
     } else if (command == "right") {
         executeSafeMovement("right", value, safeMode);
     } else if (command == "yaw_left") {
-        executeSafeMovement("yaw_left", value, safeMode); // NEW: Yaw control
+        executeSafeMovement("yaw_left", value, safeMode);
     } else if (command == "yaw_right") {
-        executeSafeMovement("yaw_right", value, safeMode); // NEW: Yaw control
+        executeSafeMovement("yaw_right", value, safeMode);
     } else if (command == "stop") {
         executeEmergencyStop();
+        currentCommand.active = false; // <<< ADD THIS LINE (Final command)
     } else if (command == "arm") {
         setRCChannel(4, RC_MAX); // Arm
-        rc_link_active = true; // Activate RC link after arming
+        rc_link_active = true;
+        currentCommand.active = false; // <<< ADD THIS LINE (State change command)
     } else if (command == "disarm") {
-        executeEmergencyStop(); // Standard immediate disarm
+        executeEmergencyStop();
+        currentCommand.active = false; // <<< ADD THIS LINE (Final command)
     } else if (command == "safe_disarm") {
-        executeSafeDisarm(); // NEW: Safe disarm with motor speed maintenance
+        executeSafeDisarm();
+        currentCommand.active = false; // <<< ADD THIS LINE (Final command)
     } else if (command == "restart") {
-        executeRestart(); // NEW: Restart ESP32 with safe landing
+        executeRestart();
     } else if (command == "throttle_percentage") {
-        executeThrottlePercentage(value, safeMode); // NEW: Direct throttle percentage control
+        executeThrottlePercentage(value, safeMode);
+        currentCommand.active = false; // <<< THIS IS THE KEY FIX (Set-and-forget command)
     }
-    
+
     // Send acknowledgment back to iPhone
     if (clientConnected) {
         String response = "{\"status\":\"executed\",\"command\":\"" + command + "\",\"value\":" + value + "}";
@@ -624,6 +630,7 @@ void loop() {
             clientIp = udp.remoteIP();
             clientPort = udp.remotePort();
             clientConnected = true;
+            rc_link_active = true; // <<<--- ADD THIS LINE HERE
         }
 
         int len = udp.read(udp_buffer, sizeof(udp_buffer));
