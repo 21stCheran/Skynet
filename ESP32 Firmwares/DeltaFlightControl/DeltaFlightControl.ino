@@ -130,15 +130,6 @@ void sendMspCommand(uint8_t command, uint8_t *payload, uint8_t payload_size) {
         memcpy(&packet[5], payload, payload_size);
     }
     packet[payload_size + 5] = calculateMspChecksum(payload_size, command, payload);
-    
-    // Log MSP packet being sent to FC
-    Serial.printf("FC_TX_MSP: CMD:%d SIZE:%d [", command, payload_size);
-    for (int i = 0; i < sizeof(packet); i++) {
-        Serial.printf("%02X", packet[i]);
-        if (i < sizeof(packet) - 1) Serial.print(" ");
-    }
-    Serial.printf("]\n");
-    
     FC_SERIAL.write(packet, sizeof(packet));
 }
 
@@ -179,8 +170,10 @@ void parseMspAltitude(uint8_t* payload, uint8_t payload_size) {
  */
 void parseMspAttitude(uint8_t* payload, uint8_t payload_size) {
     if (payload_size >= 6) {
-        // Calculate latency (no logging)
+        // Calculate latency
         fc_response_received_time = millis();
+        unsigned long latency = fc_response_received_time - fc_command_sent_time;
+        Serial.printf("FC_LATENCY: %lu ms\n", latency);
     }
 }
 
@@ -546,13 +539,6 @@ void handleCommandTimeout() {
 void send_msp_set_raw_rc(uint16_t channels[]) {
     fc_command_sent_time = millis(); // Track when command was sent
     uint8_t payload_size = 16; // 8 channels * 2 bytes/channel
-    
-    // Log the RC channel data being sent to FC
-    Serial.printf("FC_TX_RC: [R:%d P:%d T:%d Y:%d AUX1:%d AUX2:%d AUX3:%d AUX4:%d] @%lu\n",
-                  channels[0], channels[1], channels[2], channels[3],
-                  channels[4], channels[5], channels[6], channels[7],
-                  fc_command_sent_time);
-    
     // Cast the uint16_t array to a uint8_t pointer to send as payload
     sendMspCommand(MSP_SET_RAW_RC, (uint8_t*)channels, payload_size);
 }
@@ -615,14 +601,8 @@ void requestTelemetry() {
         fc_command_sent_time = millis(); // Track latency
         
         switch(current_telemetry_type) {
-            case 0: 
-                Serial.printf("FC_REQ_TELEMETRY: MSP_ATTITUDE (%d) @%lu\n", MSP_ATTITUDE, fc_command_sent_time);
-                sendMspCommand(MSP_ATTITUDE, NULL, 0); 
-                break; // Pitch, Roll, Yaw
-            case 1: 
-                Serial.printf("FC_REQ_TELEMETRY: MSP_ALTITUDE (%d) @%lu\n", MSP_ALTITUDE, fc_command_sent_time);
-                sendMspCommand(MSP_ALTITUDE, NULL, 0); 
-                break; // Altitude
+            case 0: sendMspCommand(MSP_ATTITUDE, NULL, 0); break; // Pitch, Roll, Yaw
+            case 1: sendMspCommand(MSP_ALTITUDE, NULL, 0); break; // Altitude
         }
         current_telemetry_type = (current_telemetry_type + 1) % 2; // Only 2 essential telemetry types
     }

@@ -151,18 +151,6 @@ class DroneManager: ObservableObject {
     func safeHover(throttle: Int) {
         sendCommand(.safeHover(value: throttle))
     }
-    
-    func sendDisarmCommand() {
-        sendCommand(command: "disarm")
-    }
-
-    func sendRestartCommand() {
-        sendCommand(command: "restart")
-    }
-
-    func sendEmergencyStopCommand() {
-        sendCommand(command: "estop")
-    }
 }
 
 // MARK: - Data Structures are now defined in MSPParser.swift
