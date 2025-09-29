@@ -45,7 +45,10 @@ struct ControlView: View {
                 Spacer()
             }
             .navigationTitle("Control")
-            .navigationBarItems(trailing: EmergencyStopButton().environmentObject(droneManager))
+            .navigationBarItems(trailing: HStack {
+                RestartESP32Button().environmentObject(droneManager)
+                EmergencyStopButton().environmentObject(droneManager)
+            })
         }
     }
 }
@@ -101,6 +104,29 @@ struct EmergencyStopButton: View {
                 message: Text("This will immediately cut power to all motors. Use only in emergency!"),
                 primaryButton: .destructive(Text("STOP")) {
                     droneManager.emergencyStop()
+                },
+                secondaryButton: .cancel()
+            )
+        }
+    }
+}
+
+struct RestartESP32Button: View {
+    @EnvironmentObject var droneManager: DroneManager
+    @State private var showConfirmation = false
+    
+    var body: some View {
+        Button(action: { showConfirmation = true }) {
+            Image(systemName: "arrow.clockwise.circle.fill")
+                .font(.title2)
+                .foregroundColor(.orange)
+        }
+        .alert(isPresented: $showConfirmation) {
+            Alert(
+                title: Text("Restart ESP32"),
+                message: Text("This will restart the flight controller firmware. The drone will disarm and fall if in flight."),
+                primaryButton: .destructive(Text("Restart")) {
+                    droneManager.sendRestartCommand()
                 },
                 secondaryButton: .cancel()
             )
