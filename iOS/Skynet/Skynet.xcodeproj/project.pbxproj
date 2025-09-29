@@ -10,9 +10,22 @@
 		184E1E782E845A6900AFF8E2 /* Skynet.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Skynet.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		18772E5A2E84784400C37ED5 /* Exceptions for "Skynet" folder in "Skynet" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 184E1E772E845A6900AFF8E2 /* Skynet */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		184E1E7A2E845A6900AFF8E2 /* Skynet */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				18772E5A2E84784400C37ED5 /* Exceptions for "Skynet" folder in "Skynet" target */,
+			);
 			path = Skynet;
 			sourceTree = "<group>";
 		};
