@@ -23,16 +23,16 @@ struct DashboardView: View {
                     
                     // Status Cards
                     LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 2), spacing: 15) {
-                        StatusCard(title: "Altitude", value: "\(Int(droneManager.altitudeData.altitude))cm", 
+                        StatusCard(title: "Altitude", value: "\(Int(droneManager.altitudeData.altitude))cm",
                                   icon: "arrow.up.arrow.down", color: .blue)
                         
-                        StatusCard(title: "Battery", value: "\(droneManager.statusData.batteryVoltage, specifier: "%.1f")V", 
+                        StatusCard(title: "Battery", value: String(format: "%.1fV", droneManager.statusData.batteryVoltage),
                                   icon: "battery.100", color: .green)
                         
-                        StatusCard(title: "GPS Sats", value: "\(droneManager.gpsData.satellites)", 
+                        StatusCard(title: "GPS Sats", value: "\(droneManager.gpsData.satellites)",
                                   icon: "location.circle", color: .orange)
                         
-                        StatusCard(title: "Flight Mode", value: droneManager.statusData.flightMode, 
+                        StatusCard(title: "Flight Mode", value: droneManager.statusData.flightMode,
                                   icon: "airplane", color: .purple)
                     }
                     .padding(.horizontal)

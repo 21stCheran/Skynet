@@ -70,7 +70,7 @@ struct SafetyStatusBanner: View {
             
             Spacer()
             
-            Text("Alt: \(droneManager.currentAltitudeOffset)cm")
+            Text("Alt: \(Int(droneManager.altitudeData.altitude))cm")
                 .font(.caption)
                 .foregroundColor(.secondary)
         }

@@ -5,6 +5,7 @@
 //
 
 import Foundation
+import Combine
 import Network
 
 // MARK: - UDP Manager
@@ -110,6 +111,8 @@ class UDPManager: ObservableObject {
             
             if let error = error {
                 print("Receive error: \(error)")
+                // Consider whether to disconnect or just log the error
+                // For now, we stop receiving on error.
                 return
             }
             
@@ -128,10 +131,10 @@ class UDPManager: ObservableObject {
                         self.onMessageReceived?(backToString)
                     }
                 } else {
-                    print("Data == nil")
+                    print("Received empty data")
                 }
                 
-                // Continue receiving
+                // Continue receiving for the next message
                 self.receiveUDP()
             }
         }

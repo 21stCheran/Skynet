@@ -6,6 +6,7 @@
 import SwiftUI
 #if canImport(Charts)
 import Charts
+import Combine
 #endif
 
 struct TelemetryGraphsView: View {
