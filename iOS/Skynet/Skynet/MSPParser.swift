@@ -232,6 +232,7 @@ class DroneDataManager {
         
     func handleReceivedData(_ data: Data) {
         if let parsedData = mspParser.parseUDPData(data) {
+            print("Parsed FC Data: \(parsedData)")
             // Handle parsed data
             if let attitude = parsedData["attitude"] as? AttitudeData {
                 updateAttitudeDisplay(attitude: attitude)

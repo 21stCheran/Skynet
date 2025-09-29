@@ -60,6 +60,7 @@ class DroneManager: ObservableObject {
         if let parsedData = mspParser.parseUDPData(data) {
             DispatchQueue.main.async {
                 self.updateTelemetryData(parsedData)
+                print("Parsed MSP Data: \(parsedData)") // Log parsed data
             }
         }
     }

@@ -106,37 +106,23 @@ class UDPManager: ObservableObject {
     }
     
     private func receiveUDP() {
-        connection?.receiveMessage { [weak self] data, context, isComplete, error in
+        connection?.receiveMessage { [weak self] (data, context, isComplete, error) in
             guard let self = self else { return }
+
+            if let data = data, !data.isEmpty {
+                // Log raw received data for debugging
+                print("Received raw UDP data: \(data.hexEncodedString())")
+                self.onDataReceived?(data)
+            }
             
             if let error = error {
-                print("Receive error: \(error)")
-                // Consider whether to disconnect or just log the error
-                // For now, we stop receiving on error.
+                print("Error on receive: \(error)")
+                self.disconnect()
                 return
             }
             
-            if isComplete {
-                print("Receive is complete")
-                if let data = data, !data.isEmpty {
-                    // Handle both raw data and string messages
-                    DispatchQueue.main.async {
-                        self.onDataReceived?(data)
-                    }
-                    
-                    // Also try to decode as string for legacy support
-                    let backToString = String(decoding: data, as: UTF8.self)
-                    print("Received message: \(backToString)")
-                    DispatchQueue.main.async {
-                        self.onMessageReceived?(backToString)
-                    }
-                } else {
-                    print("Received empty data")
-                }
-                
-                // Continue receiving for the next message
-                self.receiveUDP()
-            }
+            // Continue listening for more messages
+            self.receiveUDP()
         }
     }
     
@@ -151,5 +137,12 @@ class UDPManager: ObservableObject {
             self.connectionStatus = status
             self.isConnected = connected
         }
+    }
+}
+
+extension Data {
+    /// Convert Data to a hex string for debugging purposes.
+    func hexEncodedString() -> String {
+        return map { String(format: "%02hhx", $0) }.joined()
     }
 }
